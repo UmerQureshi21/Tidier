@@ -1,15 +1,29 @@
+import { useState } from "react";
+
 interface Props {
   name: string;
   type: string;
   size: number;
   thumbnail: string;
+  isClicked: boolean;
 }
 
-export default function FileDetails({ name, type, size, thumbnail }: Props) {
+export default function FileDetails({
+  name,
+  type,
+  size,
+  thumbnail,
+  isClicked,
+}: Props) {
   return (
-    <div className="relative transition duration-300 w-[90%] bg-[rgb(25,25,25)] flex justify-center items-center p-[17px] mt-[20px]">
-      <div className="w-[65%]">
-        <h1 className="text-white text-[10px]">Name: {name}</h1>
+    <div className="relative rounded-[10px] transition duration-300 w-[90%] bg-[rgb(35,35,35)] h-full flex justify-between items-center p-[17px]">
+      <div className="w-[85%]">
+        <h1
+          className="text-white text-[10px] w-full text-left truncate poppins-font font-thin"
+          title={name}
+        >
+          <span className="font-bold">Name:</span> {name}
+        </h1>
         {/* <h1 className="text-white text-[10px]">Type: {type}</h1>
         <h1 className="text-white text-[10px]">Size: {size} KB</h1> */}
       </div>
@@ -26,8 +40,13 @@ export default function FileDetails({ name, type, size, thumbnail }: Props) {
         //S3 thing, but the videos are stores in twelvelabs under the Tidier index so maybe I can
         //do something to do that
       }
-
-      <button className="absolute bg-white w-[15px] h-full  top-0 right-0 hover:cursor-pointer"></button>
+      <input
+        readOnly
+        type="checkbox"
+        checked={isClicked}
+        style={{ accentColor: "#925CFE" }} // native box + white checkmark
+        className="w-[15px] h-[15px] hover:cursor-pointer"
+      />
     </div>
   );
 }

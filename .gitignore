@@ -12,6 +12,7 @@ lerna-debug.log*
 /frontend/dist
 /frontend/dist-ssr
 /frontend/*.local
+/frontend/public/montages
 
 # === Java (Spring Boot) ===
 HELP.md
@@ -20,6 +21,8 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 uploads/
+trimmed-uploads/
+videos.txt
 
 # === Java Build ===
 /nbproject/private/

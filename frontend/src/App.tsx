@@ -1,13 +1,13 @@
 import Header from "./components/Header";
-import Prompt from "./components/Prompt";
+import MontageArea from "./components/MontageArea";
 import Upload from "./components/Upload";
 
 export default function App() {
   return (
     <div>
       <Header />
-      <Prompt />
       <Upload />
+      <MontageArea/>
     </div>
     //#925CFE--light purple
     //#6600FF--dark purple

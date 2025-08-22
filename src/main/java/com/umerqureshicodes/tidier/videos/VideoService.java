@@ -3,6 +3,8 @@ package com.umerqureshicodes.tidier.videos;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umerqureshicodes.tidier.Utilities.TwelveLabsResponse;
+import com.umerqureshicodes.tidier.prompts.Prompt;
+import jakarta.transaction.Transactional;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,8 +14,15 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 @Service
 public class VideoService {
@@ -22,12 +31,18 @@ public class VideoService {
     private String apiKey;
     @Value("${twelvelabs.index.id}")
     private String indexId;
-    private VideoRepo videoRepo;
+    private final VideoRepo videoRepo;
 
     @Autowired
     public VideoService(VideoRepo videoRepo) {
         this.videoRepo = videoRepo;
     }
+
+    @Transactional
+    public void updateVideo(Video videoToUpdate, Prompt promptToAdd) {
+        videoToUpdate.getPrompts().add(promptToAdd); // just add it
+    }
+
 
 //    public List<VideoResponseDTO> uploadVideoToFileSystem(List<MultipartFile> files) {
 //        List<VideoResponseDTO> videoResponseDTOList = new ArrayList<>();
@@ -92,29 +107,6 @@ public class VideoService {
 //    }
 
 
-    //https://docs.twelvelabs.io/v1.3/api-reference/analyze-videos/analyze
-    public String analyzeVideo(Video video) {
-        if (video.getId() == null) {
-            return "Video ID is null";
-        }
-
-        String requestBody = "{"
-                + "\"video_id\": \"" + video.getVideoId() + "\","
-                + "\"prompt\": \"" + "this is an example prompt. just return this: example prompt was used" + "\","
-                + "\"temperature\": 0.2,"
-                + "\"stream\": false"
-                + "}";
-
-        HttpResponse<String> response = Unirest.post("https://api.twelvelabs.io/v1.3/analyze")
-                .header("x-api-key", apiKey)
-                .header("Content-Type", "application/json")
-                .body(requestBody)
-                .asString();
-
-        return "Status: " + response.getStatus() + "\nResponse: " + response.getBody();
-    }
-
-
     public List<VideoResponseDTO> getVideos() {
         List<VideoResponseDTO> videoResponseDTOList = new ArrayList<>();
         for (Video video : videoRepo.findAll()) {
@@ -122,4 +114,38 @@ public class VideoService {
         }
         return videoResponseDTOList;
     }
+
+    public Video getVideoByVideoId(String videoId) {
+        return videoRepo.findByVideoId(videoId);
+    }
+
+    public List<String> getAllMontages() {
+        List<String> filesList = new ArrayList<>();
+        Path montagesPath = Paths.get(System.getProperty("user.dir"), "frontend", "public", "montages");
+
+        try {
+            if (!Files.exists(montagesPath)) {
+                Files.createDirectories(montagesPath);
+            }
+
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(montagesPath)) {
+                for (Path path : stream) {
+                    File file = path.toFile();
+                    if (file.isFile()) {
+                        filesList.add("/montages/" + file.getName());
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+            // optionally return an empty list if there's an error
+        }
+
+        return filesList;
+    }
+
+
+
+
 }
