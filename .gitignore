@@ -13,6 +13,7 @@ lerna-debug.log*
 /frontend/dist-ssr
 /frontend/*.local
 /frontend/public/montages
+frontend/.vite/
 
 # === Java (Spring Boot) ===
 HELP.md
