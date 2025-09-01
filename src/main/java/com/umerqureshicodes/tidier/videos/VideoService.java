@@ -123,10 +123,6 @@ public class VideoService {
         List<String> filesList = new ArrayList<>();
         Path montagesPath = Paths.get(System.getProperty("user.dir"), "frontend", "public", "montages");
 
-        try {
-            if (!Files.exists(montagesPath)) {
-                Files.createDirectories(montagesPath);
-            }
 
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(montagesPath)) {
                 for (Path path : stream) {
@@ -136,7 +132,7 @@ public class VideoService {
                     }
                 }
             }
-        } catch (IOException e) {
+         catch (IOException e) {
             e.printStackTrace();
             return null;
             // optionally return an empty list if there's an error

@@ -8,6 +8,16 @@ export default function Upload() {
   let [sentence, setSentence] = useState<string>("");
 
   async function handleSubmit() {
+    /**
+     * This will eventually upload a montage to the montages folder. When the montages folder updates,
+     * i.e when this function is called, I want to also call the route to get all montages, which will
+     * be used for updating the MontageArea, displaying all the montages. 
+     * 
+     * I am aware that I can call that route in here, so that everytime the montage folder updates, I 
+     * have all the montages and can pass it through via context, but I want to use a websocket to 
+     * have a persistent connection between that component and the montages route. 
+     */
+
     let selectedPrevFiles: VideoDTO[] = [];
     for (let i = 0; i < prevFiles.length; i++) {
       if (clicks[i]) {
@@ -60,6 +70,8 @@ export default function Upload() {
       .catch((err) => {
         console.error("Prompt request failed:", err);
       });
+
+      
   }
 
   async function getAllFiles() {
