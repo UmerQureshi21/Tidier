@@ -43,7 +43,7 @@ By using a relative path and creating the folder, your app will be portable and 
     /*
     * Basically what im doing now is finding a way for frontend to call the montage
     * route everytime the montages folder gets updated, and you can use websockets
-    * so im learning that rn 08/22
+    * so im learning that rn 08/22 UPDATE: NO NEED FOR WEB SOCKET
     * */
 
 

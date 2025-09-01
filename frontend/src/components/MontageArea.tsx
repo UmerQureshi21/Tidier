@@ -28,7 +28,7 @@ export default function MontageArea() {
     <div className="w-full bg-black flex flex-col items-center pt-[20px] text-white">
       <div className="w-[80%] h-[400px] bg-[rgb(20,20,20)] flex items-center justify-center rounded-[20px]">
         <video
-          src={montagePaths[0]}
+          src={montagePaths[8]}
           className="w-[80%] h-[350px] rounded-[40px]"
           controls
           autoPlay
