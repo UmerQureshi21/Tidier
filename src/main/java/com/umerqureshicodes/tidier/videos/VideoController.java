@@ -22,22 +22,16 @@ By using a relative path and creating the folder, your app will be portable and 
     }
 
 
-//    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
-//    @PostMapping("/upload")
-//    public List<VideoResponseDTO> uploadFile(@RequestParam("files") List<MultipartFile> multipartFiles) {
-//        return twelveLabsService.uploadVideoToFileSystem(multipartFiles);
-//    }
+    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
+    @PostMapping("/videos")
+    public List<VideoResponseDTO> uploadVideo(@RequestParam("files") List<MultipartFile> multipartFiles) {
+        return videoService.uploadToDirectory(multipartFiles);
+    }
 
     @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @GetMapping("/videos")
     public List<VideoResponseDTO> getAllVideos() {
         return videoService.getVideos();
-    }
-
-    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
-    @GetMapping("/montages")
-    public List<String> getAllMontages() {
-        return videoService.getAllMontages();
     }
 
     /*

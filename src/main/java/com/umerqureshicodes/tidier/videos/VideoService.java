@@ -3,7 +3,8 @@ package com.umerqureshicodes.tidier.videos;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umerqureshicodes.tidier.Utilities.TwelveLabsResponse;
-import com.umerqureshicodes.tidier.prompts.Prompt;
+import com.umerqureshicodes.tidier.Utilities.TwelveLabsTaskResponse;
+import com.umerqureshicodes.tidier.montages.Montage;
 import jakarta.transaction.Transactional;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
@@ -38,108 +39,73 @@ public class VideoService {
         this.videoRepo = videoRepo;
     }
 
-    @Transactional
-    public void updateVideo(Video videoToUpdate, Prompt promptToAdd) {
-        videoToUpdate.getPrompts().add(promptToAdd); // just add it
+//    @Transactional
+//    public void updateVideo(Video videoToUpdate, Prompt promptToAdd) {
+//        videoToUpdate.getPrompts().add(promptToAdd); // just add it
+//    }
+
+    public List<VideoResponseDTO> uploadToDirectory(List<MultipartFile> files) {
+        List<VideoResponseDTO> videoResponseDTOList = new ArrayList<>();
+        try {
+            // Save the files to the local file system
+            for(MultipartFile file : files) {
+                String filePath = "/Users/umerqureshi/Desktop/Computer Science/Personal Projects/SpringBoot/Tidier/uploads/" + file.getOriginalFilename();
+                file.transferTo(new File(filePath));
+                Video uploadedVid = uploadToTwelveLabsAndSave(filePath, file.getOriginalFilename());
+                videoResponseDTOList.add(new VideoResponseDTO(uploadedVid.getName(),uploadedVid.getVideoId()));
+            }
+            return videoResponseDTOList;
+        } catch (IOException e) {
+            e.printStackTrace(); // Or use a logger instead
+            System.out.println ("Failed to upload file: " + e.getMessage());
+            return null;
+        }
     }
 
+    public Video uploadToTwelveLabsAndSave(String path,String filename) {
 
-//    public List<VideoResponseDTO> uploadVideoToFileSystem(List<MultipartFile> files) {
-//        List<VideoResponseDTO> videoResponseDTOList = new ArrayList<>();
-//        try {
-//            // Save the files to the local file system
-//            for(MultipartFile file : files) {
-//                String filePath = "/Users/umerqureshi/Desktop/Computer Science/Personal Projects/SpringBoot/Tidier/uploads/" + file.getOriginalFilename();
-//                file.transferTo(new File(filePath));
-//                Video uploadedVid = uploadVideoToTwelveLabs(filePath, file.getOriginalFilename());
-//                videoResponseDTOList.add(new VideoResponseDTO(uploadedVid.getName(),uploadedVid.getVideoId(),true));
-//            }
-//            return videoResponseDTOList;
-//        } catch (IOException e) {
-//            e.printStackTrace(); // Or use a logger instead
-//            System.out.println ("Failed to upload file: " + e.getMessage());
-//            return null;
-//        }
-//    }
-//
-//    public Video uploadVideoToTwelveLabs(String path,String filename) {
-//
-//        HttpResponse<String> response = Unirest.post("https://api.twelvelabs.io/v1.3/tasks")
-//                .header("x-api-key", apiKey)
-//                .field("index_id", indexId)
-//                .field("video_file", new File(path) )
-//                .asString();
-//
-//        if(response.getStatus() == 200 || response.getStatus() == 201) {
-//            try{
-//                ObjectMapper mapper = new ObjectMapper();
-//                TwelveLabsResponse responseContainer = mapper.readValue(response.getBody(), TwelveLabsResponse.class);
-//                Video video = new Video(responseContainer.getVideoId(),new ArrayList<>(),false,filename);
-//                videoRepo.save(video);
-//                return video;
-//            }catch(Exception e){
-//                e.printStackTrace();
-//                System.out.println("Failed to upload file: " + e.getMessage());
-//                return null;
-//            }
-//
-//        }
-//        else{
-//            System.out.println("API error: " + response.getStatus());
-//            return null;
-//        }
-//
-//    }
+        HttpResponse<String> response = Unirest.post("https://api.twelvelabs.io/v1.3/tasks")
+                .header("x-api-key", apiKey)
+                .field("index_id", indexId)
+                .field("video_file", new File(path) )
+                .asString();
 
-//    public String analyzeVideo(Video video) {
-//
-//        if(video.getId() == null) {
-//            return "Video id is null";
-//        }
-//
-//        HttpResponse<String> response = Unirest.post("https://api.twelvelabs.io/v1.3/videos/" + video.getId() + "/analyze")
-//                .header("x-api-key", apiKey)
-//                .header("Content-Type", "application/json")
-//                .body("{\"prompt\": \"" + video.getPrompt() + "\"}")
-//                .asString();
-//
-//        return "Status: " + response.getStatus() + "\nResponse: " + response.getBody();
-//    }
-
+        if(response.getStatus() == 200 || response.getStatus() == 201) {
+            try{
+                ObjectMapper mapper = new ObjectMapper();
+                TwelveLabsTaskResponse twelvelabsTaskResponse = mapper.readValue(response.getBody(), TwelveLabsTaskResponse.class);
+                Video video = new Video(twelvelabsTaskResponse.videoId(),filename);
+                videoRepo.save(video);
+                return video;
+            }catch(Exception e){
+                e.printStackTrace();
+                System.out.println("Failed to upload file: " + e.getMessage());
+                return null;
+            }
+        }
+        else{
+            System.out.println("API error: " + response.getStatus());
+            return null;
+        }
+    }
 
     public List<VideoResponseDTO> getVideos() {
         List<VideoResponseDTO> videoResponseDTOList = new ArrayList<>();
         for (Video video : videoRepo.findAll()) {
-            videoResponseDTOList.add(new VideoResponseDTO(video.getName(),video.getVideoId(),false));
+            videoResponseDTOList.add(new VideoResponseDTO(video.getName(),video.getVideoId()));
         }
         return videoResponseDTOList;
     }
 
-    public Video getVideoByVideoId(String videoId) {
-        return videoRepo.findByVideoId(videoId);
+    public List<Video> getVideosByVideoIds(List<String> videoIds) {
+        return  videoRepo.findAllByVideoIds(videoIds);
     }
 
-    public List<String> getAllMontages() {
-        List<String> filesList = new ArrayList<>();
-        Path montagesPath = Paths.get(System.getProperty("user.dir"), "frontend", "public", "montages");
-
-
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(montagesPath)) {
-                for (Path path : stream) {
-                    File file = path.toFile();
-                    if (file.isFile()) {
-                        filesList.add("/montages/" + file.getName());
-                    }
-                }
-            }
-         catch (IOException e) {
-            e.printStackTrace();
-            return null;
-            // optionally return an empty list if there's an error
-        }
-
-        return filesList;
+    @Transactional
+    public void updateVideo(Video video, Montage montage) {
+        video.getMontages().add(montage);
     }
+
 
 
 

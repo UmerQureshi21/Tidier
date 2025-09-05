@@ -1,0 +1,292 @@
+package com.umerqureshicodes.tidier.montages;
+
+
+import com.umerqureshicodes.tidier.Utilities.TwelveLabsTimeStampResponse;
+import com.umerqureshicodes.tidier.videos.*;
+import jakarta.transaction.Transactional;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.io.*;
+import java.nio.file.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Objects;
+
+@Service
+public class MontageService {
+
+    @Value("${twelvelabs.api.key}")
+    private String apiKey;
+    @Value("${project.path}")
+    private String projectPath;
+    private final String successMessage = "✅ Successfully combined videos into ";
+    private final MontageRepo montageRepo;
+    private final VideoService videoService;
+    public MontageService(MontageRepo montageRepo, VideoService videoService) {
+        this.montageRepo = montageRepo;
+        this.videoService = videoService;
+    }
+
+    public MontageResponseDTO convertToDTO(Montage montage) {
+        List<VideoResponseDTO> videoResponseDTOs = new ArrayList<>();
+        for (Video video: montage.getVideos()){
+            videoResponseDTOs.add(new VideoResponseDTO(video.getVideoId(),video.getName()));
+        }
+        return new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt());
+    }
+
+    public MontageResponseDTO createMontage(MontageRequestDTO montageRequestDTO) {
+        Montage montage = new Montage(montageRequestDTO.name(),montageRequestDTO.prompt());
+       String message = combineVideos(trimVideos(analyzeVideoWithPrompt(montageRequestDTO),montageRequestDTO.videoRequestDTOs()),montageRequestDTO.name());
+       if(Objects.equals(message, successMessage +montageRequestDTO.name())) {
+           List<String> videoIds = new ArrayList<>();
+           for (VideoRequestDTO v : montageRequestDTO.videoRequestDTOs()) {
+               videoIds.add(v.getVideoId());
+           }
+           List<Video> videosInMontage = videoService.getVideosByVideoIds(videoIds);
+           for (Video v : videosInMontage) {
+               videoService.updateVideo(v,montage);
+           }
+           // this can surely be put into one for loop
+           montage.setVideos(videosInMontage);
+           return convertToDTO(montageRepo.save(montage));
+       }
+       else{
+           System.out.println(message);
+           return null;
+       }
+
+    }
+
+    //https://docs.twelvelabs.io/v1.3/api-reference/analyze-videos/analyze
+    public List<String> analyzeVideoWithPrompt(MontageRequestDTO montageRequestDTO) {
+
+        List<String> timestamps = new ArrayList<>();
+
+        for(VideoRequestDTO v : montageRequestDTO.videoRequestDTOs()) {
+            StringBuilder timestamp = new StringBuilder(); // basically just a String but built to do += to, using append() instead
+            String requestBody = "{"
+                    + "\"video_id\": \"" + v.getVideoId() + "\","
+                    + "\"prompt\": \"" + montageRequestDTO.prompt() + "\","
+                    + "\"temperature\": 0.2,"
+                    + "\"stream\": false"
+                    + "}";
+            HttpResponse<TwelveLabsTimeStampResponse> response =
+                    Unirest.post("https://api.twelvelabs.io/v1.3/analyze")
+                            .header("x-api-key", apiKey)
+                            .header("Content-Type", "application/json")
+                            .body(requestBody)
+                            .asObject(TwelveLabsTimeStampResponse.class);
+
+            if (response.getStatus() == 200 || response.getStatus() == 201) {
+                timestamps.add(response.getBody().data());
+            }
+
+        }
+
+        return timestamps;
+
+    }
+
+    public List<String> trimVideos(List<String> timeStamps, List<VideoRequestDTO> videoRequestDTOs) {
+        List<HashMap<String,String>> intervals = new ArrayList<>();
+        List<String> trimmedVideosToCombine = new ArrayList<>();
+
+        //timestamps in format of [[00:00-00:04, 00:04-00:08, 00:11-00:13],[00:01-00:03, 00:10-00:12]]
+        for (int i = 0; i < timeStamps.size(); i++) {
+
+            for(String timeStamp : timeStamps.get(i).split(", ")) {
+                HashMap<String,String> interval = new HashMap<>();
+                String[] times = timeStamp.split("-");
+                interval.put("start", "00:"+times[0]+".000");
+                interval.put("end", "00:"+times[1]+".000");
+                interval.put("video",videoRequestDTOs.get(i).getName());
+                System.out.println(interval.get("start")+" "+interval.get("end")+" "+interval.get("video"));
+                intervals.add(interval);
+            }
+        }
+        int i = 0;
+        for(HashMap<String,String> interval : intervals)
+        {
+            try {
+                String trimmedVideoName = interval.get("video")+"-trimmed-"+i+".mp4";
+                String inputPath =projectPath+ "/uploads/"+interval.get("video");
+                String outputPath = projectPath + "/trimmed-uploads/"+trimmedVideoName;
+                trimmedVideosToCombine.add(trimmedVideoName);
+                System.out.println("\n\n\n\n"+trimmedVideoName+"\n\n\n\n");
+//                ProcessBuilder pb = new ProcessBuilder(
+//                        "ffmpeg",
+//                        "-i", inputPath,
+//                        "-ss", interval.get("start"),
+//                        "-to", interval.get("end"),
+//                        "-c:v", "copy",
+//                        "-c:a", "copy",
+//                        outputPath
+//                );
+//
+//                What you lose with the new method:
+//
+//                Speed ⚡
+//
+//                -c copy = instant, just cuts without touching pixels/audio.
+//
+//                        libx264 + aac = full re-encode. Depending on clip length & machine, could take seconds → minutes.
+//
+//                        File size 💾
+//
+//                Re-encoding may produce larger files than the original, since it’s not a byte-for-byte copy.
+//
+//                You can control this with -crf (e.g., 23 is default, 18–20 = higher quality, bigger file).
+//
+//                    Slight quality loss 🎥
+//
+//                    Any time you re-encode lossy formats (like H.264 + AAC), you’re recompressing → small degradation.
+//
+//                    At -crf 23, most people won’t see it, but it’s not 100% identical like -c copy.
+//
+//                            What you gain:
+//
+//✅ Works in Finder previews, QuickTime, Safari, iPhone, iPad, Chrome, etc.
+//
+//✅ Proper audio-video sync (sometimes -c copy produces desync issues if you cut on non-keyframes).
+//
+//✅ Future-proofing: every device expects H.264 + AAC.
+                ProcessBuilder pb = new ProcessBuilder(
+                        "ffmpeg",
+                        "-i", inputPath,
+                        "-ss", interval.get("start"),
+                        "-to", interval.get("end"),
+                        "-c:v", "libx264",
+                        "-crf", "23",
+                        "-preset", "fast",
+                        "-c:a", "aac",
+                        "-b:a", "192k",
+                        outputPath
+                );
+
+                pb.redirectErrorStream(true); // merge stderr into stdout
+                Process process = pb.start();
+
+                // Capture output (optional, for debugging)
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println(line);
+                }
+
+                int exitCode = process.waitFor();
+                System.out.println("FFmpeg finished with exit code " + exitCode);
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.out.println(e.getMessage());
+                return null;
+            }
+            i++;
+        }
+
+        return trimmedVideosToCombine;
+    }
+
+    public  String combineVideos(List<String> trimmedFiles, String outputFileName) {
+
+        if(trimmedFiles == null) {
+            return "error in console when trimming videos";
+        }
+
+        try {
+            // 1. Create videos.txt
+            File listFile = new File("videos.txt");
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(listFile))) {
+                for (String file : trimmedFiles) {
+                    writer.write("file 'trimmed-uploads/" + file + "'\n");
+                    System.out.println("File supposed to go in videos.txt: " + file);
+                }
+            }
+
+
+
+            // 2. Run ffmpeg with re-encoding for compatibility with mac's finder
+            ProcessBuilder pb = new ProcessBuilder(
+                    "ffmpeg", "-f", "concat", "-safe", "0",
+                    "-i", "videos.txt",
+                    "-c:v", "libx264", "-crf", "23", "-preset", "veryfast",
+                    "-c:a", "aac",
+                    outputFileName
+            );
+            // the problem is it gets the filename from trimmedvideos, but it trues to loko for that
+            // file assuming that its in the root directory, so i prepended each line
+            // in videos.txt
+
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+
+            // Log output in case of errors
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println(line);
+                }
+            }
+
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                Path projectRoot = Path.of(System.getProperty("user.dir")); //returns the directory where the Java process was started (usually your project root when you run the app)
+                Path source = projectRoot.resolve(outputFileName);
+                Path target = projectRoot.resolve("frontend/public/montages/"+outputFileName);
+
+                Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
+
+                return successMessage + outputFileName;
+            } else {
+                return "❌ Failed to combine videos (exit code " + exitCode + ")";
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "❌ Error: " + e.getMessage();
+        }
+    }
+
+    public List<String> getMontages() {
+
+
+        // SHOULD BE CAHGNED TO REPO . FINDALL AND THEN YOU PREPEND /montages/
+        List<String> filesList = new ArrayList<>();
+        Path montagesPath = Paths.get(System.getProperty("user.dir"), "frontend", "public", "montages");
+
+
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(montagesPath)) {
+            for (Path path : stream) {
+                File file = path.toFile();
+                if (file.isFile()) {
+                    filesList.add("/montages/" + file.getName());
+                }
+            }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            return null;
+            // optionally return an empty list if there's an error
+        }
+
+        return filesList;
+    }
+
+    public String deleteMontage(Long montageId) {
+
+
+
+        // WRITE SOMETHING THAT DELETES THE MONTAGE VIDEO IN THE MONTAGES FOLDER
+        // AND ALSO RENAME EACH TRIMMED VIDEO IN A BETTER MANNER
+
+
+
+
+         montageRepo.deleteById(montageId);
+         return "Successfully deleted montage with id:" + montageId;
+    }
+}

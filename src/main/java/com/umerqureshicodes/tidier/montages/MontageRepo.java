@@ -1,8 +1,8 @@
-package com.umerqureshicodes.tidier.prompts;
+package com.umerqureshicodes.tidier.montages;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface PromptRepo extends JpaRepository<Prompt, Long> {
+public interface MontageRepo extends JpaRepository<Montage, Long> {
 }

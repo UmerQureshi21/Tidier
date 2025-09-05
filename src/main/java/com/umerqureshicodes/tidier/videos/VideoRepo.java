@@ -16,5 +16,5 @@ public interface VideoRepo extends JpaRepository<Video, Long> {
     )
     List<Video> findAllByVideoIds(@Param("videoIds") List<String> ids);
 
-    Video findByVideoId(String videoId);
+
 }
