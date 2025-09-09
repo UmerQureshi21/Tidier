@@ -23,7 +23,6 @@ public class MontageService {
     private String apiKey;
     @Value("${project.path}")
     private String projectPath;
-    private final String successMessage = "✅ Successfully combined videos into ";
     private final MontageRepo montageRepo;
     private final VideoService videoService;
     public MontageService(MontageRepo montageRepo, VideoService videoService) {
@@ -41,8 +40,8 @@ public class MontageService {
 
     public MontageResponseDTO createMontage(MontageRequestDTO montageRequestDTO) {
         Montage montage = new Montage(montageRequestDTO.name(),montageRequestDTO.prompt());
-       String message = combineVideos(trimVideos(analyzeVideoWithPrompt(montageRequestDTO),montageRequestDTO.videoRequestDTOs()),montageRequestDTO.name());
-       if(Objects.equals(message, successMessage +montageRequestDTO.name())) {
+       int ffmpegCode = combineVideos(trimVideos(analyzeVideoWithPrompt(montageRequestDTO),montageRequestDTO.videoRequestDTOs()),montageRequestDTO.name());
+       if(ffmpegCode == 0) {
            List<String> videoIds = new ArrayList<>();
            for (VideoRequestDTO v : montageRequestDTO.videoRequestDTOs()) {
                videoIds.add(v.getVideoId());
@@ -56,7 +55,7 @@ public class MontageService {
            return convertToDTO(montageRepo.save(montage));
        }
        else{
-           System.out.println(message);
+           System.out.println("ERROR EXIT CODE: "+ffmpegCode);
            return null;
        }
 
@@ -71,7 +70,7 @@ public class MontageService {
             StringBuilder timestamp = new StringBuilder(); // basically just a String but built to do += to, using append() instead
             String requestBody = "{"
                     + "\"video_id\": \"" + v.getVideoId() + "\","
-                    + "\"prompt\": \"" + montageRequestDTO.prompt() + "\","
+                    + "\"prompt\": \"" + montageRequestDTO.sentence() + "\","
                     + "\"temperature\": 0.2,"
                     + "\"stream\": false"
                     + "}";
@@ -99,14 +98,21 @@ public class MontageService {
         //timestamps in format of [[00:00-00:04, 00:04-00:08, 00:11-00:13],[00:01-00:03, 00:10-00:12]]
         for (int i = 0; i < timeStamps.size(); i++) {
 
+            // POSSIBILITY OF TIMESTAMPS BEING NONE I THINK
             for(String timeStamp : timeStamps.get(i).split(", ")) {
-                HashMap<String,String> interval = new HashMap<>();
-                String[] times = timeStamp.split("-");
-                interval.put("start", "00:"+times[0]+".000");
-                interval.put("end", "00:"+times[1]+".000");
-                interval.put("video",videoRequestDTOs.get(i).getName());
-                System.out.println(interval.get("start")+" "+interval.get("end")+" "+interval.get("video"));
-                intervals.add(interval);
+                if (!timeStamp.isEmpty()){
+                    HashMap<String,String> interval = new HashMap<>();
+                    String[] times = timeStamp.split("-");
+                    interval.put("start", "00:"+times[0]+".000");
+                    interval.put("end", "00:"+times[1]+".000");
+                    interval.put("video",videoRequestDTOs.get(i).getName());
+                    System.out.println(interval.get("start")+" "+interval.get("end")+" "+interval.get("video"));
+                    intervals.add(interval);
+                }
+                else{
+                    System.out.println("\n\n\n\nNo time stamp found of montage request!!!\n\n\n\n");
+                }
+
             }
         }
         int i = 0;
@@ -191,12 +197,12 @@ public class MontageService {
         return trimmedVideosToCombine;
     }
 
-    public  String combineVideos(List<String> trimmedFiles, String outputFileName) {
+    public  int combineVideos(List<String> trimmedFiles, String outputFileName) {
 
         if(trimmedFiles == null) {
-            return "error in console when trimming videos";
+            return 1;
         }
-
+        int exitCode = 100;
         try {
             // 1. Create videos.txt
             File listFile = new File("videos.txt");
@@ -233,7 +239,7 @@ public class MontageService {
                 }
             }
 
-            int exitCode = process.waitFor();
+            exitCode = process.waitFor();
             if (exitCode == 0) {
                 Path projectRoot = Path.of(System.getProperty("user.dir")); //returns the directory where the Java process was started (usually your project root when you run the app)
                 Path source = projectRoot.resolve(outputFileName);
@@ -241,14 +247,12 @@ public class MontageService {
 
                 Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
 
-                return successMessage + outputFileName;
-            } else {
-                return "❌ Failed to combine videos (exit code " + exitCode + ")";
             }
         } catch (Exception e) {
             e.printStackTrace();
-            return "❌ Error: " + e.getMessage();
+            System.out.println("❌ Error: " + e.getMessage());
         }
+        return exitCode;
     }
 
     public List<String> getMontages() {

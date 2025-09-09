@@ -7,6 +7,7 @@ import java.util.List;
 public record MontageRequestDTO(
         String name,
         List<VideoRequestDTO> videoRequestDTOs,
-        String prompt
+        String prompt,
+        String sentence
 ) {
 }

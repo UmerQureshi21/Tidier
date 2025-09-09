@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import FileDetails from "./FileDetails";
-import type { VideoDTO, PromptRequestDTO } from "../Types";
+import type { VideoRequestDTO, MontageRequestDTO } from "../Types";
+
+/**
+ * "Give all time intervals of ${sentence}, only tell me the intervals, nothing else, and in this format: 00:00-00:06, 01:02:01:09, ..."
+
+ */
 
 export default function Upload() {
-  let [prevFiles, setPrevFiles] = useState<VideoDTO[]>([]);
+  let [prevFiles, setPrevFiles] = useState<VideoRequestDTO[]>([]);
   let [clicks, setClicks] = useState<boolean[]>([]);
   let [sentence, setSentence] = useState<string>("");
 
@@ -11,65 +16,48 @@ export default function Upload() {
     /**
      * This will eventually upload a montage to the montages folder. When the montages folder updates,
      * i.e when this function is called, I want to also call the route to get all montages, which will
-     * be used for updating the MontageArea, displaying all the montages. 
-     * 
-     * I am aware that I can call that route in here, so that everytime the montage folder updates, I 
-     * have all the montages and can pass it through via context, but I want to use a websocket to 
-     * have a persistent connection between that component and the montages route. 
+     * be used for updating the MontageArea, displaying all the montages.
+     *
+     * I am aware that I can call that route in here, so that everytime the montage folder updates, I
+     * have all the montages and can pass it through via context, but I want to use a websocket to
+     * have a persistent connection between that component and the montages route.
      */
-
-    let selectedPrevFiles: VideoDTO[] = [];
-    for (let i = 0; i < prevFiles.length; i++) {
+    let videos: VideoRequestDTO[] = [];
+    for (let i = 0; i < clicks.length; i++) {
       if (clicks[i]) {
-        selectedPrevFiles.push(prevFiles[i]);
+        videos.push(prevFiles[i]);
       }
     }
 
-
-
-
-
-
-
-    let request: PromptRequestDTO = {
-      sentence: ` Give all time intervals of ${sentence}, only tell me the intervals, nothing else, and in this format: 00:00-00:06, 01:02:01:09, ...`,
-      videoRequestDTOs: selectedPrevFiles,
+    let request: MontageRequestDTO = {
+      name: `montage-of-${sentence}.mp4`,
+      sentence: `Give all time intervals of ${sentence}, only tell me the intervals, nothing else, and in this format: 00:00-00:06, 01:02:01:09, ...`,
+      prompt: sentence,
+      videoRequestDTOs: videos,
     };
-    console.log(request);
 
-    await fetch("http://localhost:8080/prompts", {
+    //ask why i didnt have to specify the headers for this request
+    await fetch("http://localhost:8080/montages", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json", // tell backend to expect JSON
       },
-      body: JSON.stringify(request),
+      body: JSON.stringify(request), // stringify the object
     })
       .then((res) => {
         if (!res.ok) {
           throw new Error(`Server responded with status ${res.status}`);
         }
-        return res.text(); // because backend returns String, but CHANGE IT TO JSON LATER
+        return res.json();
       })
       .then((data) => {
-        console.log("Prompt processed successfully:", data); 
-
-        /*
-        Prompt processed successfully: 
-        {
-        "id":"5786adf9-65c0-425b-9a09-952e41f829ac",
-        "data":"00:00-00:04, 00:04-00:08, 00:11-00:13",
-        "finish_reason":"stop",
-        "usage":{
-                "output_tokens":37
-                }
-        }
-         */
+        console.log(data)
       })
       .catch((err) => {
-        console.error("Prompt request failed:", err);
+        console.error("Montage upload failed my bro:", err);
       });
 
-      
+    console.log(videos);
   }
 
   async function getAllFiles() {
@@ -112,7 +100,7 @@ export default function Upload() {
         console.log(`File ${index}: ${file}`);
         request.append("files", file);
       }
-      fetch("http://localhost:8080/upload", {
+      fetch("http://localhost:8080/videos", {
         method: "POST",
         body: request,
       })
@@ -124,6 +112,7 @@ export default function Upload() {
         })
         .then((data) => {
           console.log("Upload successful:", data); // data is like of VideoDTOs
+          getAllFiles();
         })
         .catch((err) => {
           console.error("Upload failed:", err);
@@ -149,8 +138,12 @@ export default function Upload() {
               style={{ caretColor: "#6600FF" }}
             />
             <button
-              className="w-[20%] h-[60%] mt-[10px] bg-[#925CFE] text-[12px] rounded-[5px] text-center"
+              className="w-[20%] h-[60%] mt-[10px] text-[12px] rounded-[5px] text-center transition-ease duration-[250ms]"
               onClick={handleSubmit}
+              disabled={sentence == "" ? true : false}
+              style={{
+                backgroundColor: sentence == "" ? "#222222" : "#925CFE",
+              }}
             >
               Generate!
             </button>
@@ -218,7 +211,9 @@ export default function Upload() {
           <h1 className=" mt-[20px] text-white w-[80%] text-center">
             Upload your trip clips here, and{" "}
             <span className="font-bold text-[#6600FF]">Tidier</span> will
-            display your <span className="font-bold text-[#6600FF]">personalized </span> montage below!
+            display your{" "}
+            <span className="font-bold text-[#6600FF]">personalized </span>{" "}
+            montage below!
           </h1>
         </div>
       </div>
