@@ -124,43 +124,7 @@ public class MontageService {
                 String outputPath = projectPath + "/trimmed-uploads/"+trimmedVideoName;
                 trimmedVideosToCombine.add(trimmedVideoName);
                 System.out.println("\n\n\n\n"+trimmedVideoName+"\n\n\n\n");
-//                ProcessBuilder pb = new ProcessBuilder(
-//                        "ffmpeg",
-//                        "-i", inputPath,
-//                        "-ss", interval.get("start"),
-//                        "-to", interval.get("end"),
-//                        "-c:v", "copy",
-//                        "-c:a", "copy",
-//                        outputPath
-//                );
-//
-//                What you lose with the new method:
-//
-//                Speed ⚡
-//
-//                -c copy = instant, just cuts without touching pixels/audio.
-//
-//                        libx264 + aac = full re-encode. Depending on clip length & machine, could take seconds → minutes.
-//
-//                        File size 💾
-//
-//                Re-encoding may produce larger files than the original, since it’s not a byte-for-byte copy.
-//
-//                You can control this with -crf (e.g., 23 is default, 18–20 = higher quality, bigger file).
-//
-//                    Slight quality loss 🎥
-//
-//                    Any time you re-encode lossy formats (like H.264 + AAC), you’re recompressing → small degradation.
-//
-//                    At -crf 23, most people won’t see it, but it’s not 100% identical like -c copy.
-//
-//                            What you gain:
-//
-//✅ Works in Finder previews, QuickTime, Safari, iPhone, iPad, Chrome, etc.
-//
-//✅ Proper audio-video sync (sometimes -c copy produces desync issues if you cut on non-keyframes).
-//
-//✅ Future-proofing: every device expects H.264 + AAC.
+
                 ProcessBuilder pb = new ProcessBuilder(
                         "ffmpeg",
                         "-i", inputPath,
@@ -246,7 +210,7 @@ public class MontageService {
                 Path target = projectRoot.resolve("frontend/public/montages/"+outputFileName);
 
                 Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
-
+                listFile.delete();
             }
         } catch (Exception e) {
             e.printStackTrace();

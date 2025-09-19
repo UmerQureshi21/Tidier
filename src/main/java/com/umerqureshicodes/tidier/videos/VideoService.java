@@ -13,16 +13,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Stream;
 
 @Service
@@ -32,6 +31,8 @@ public class VideoService {
     private String apiKey;
     @Value("${twelvelabs.index.id}")
     private String indexId;
+    @Value("${project.path}")
+    private String projectPath;
     private final VideoRepo videoRepo;
 
     @Autowired
@@ -39,19 +40,61 @@ public class VideoService {
         this.videoRepo = videoRepo;
     }
 
-//    @Transactional
-//    public void updateVideo(Video videoToUpdate, Prompt promptToAdd) {
-//        videoToUpdate.getPrompts().add(promptToAdd); // just add it
-//    }
+    public  void convertToMp4(String inputPath, String outputPath) {
+        // ffmpeg command
+        String[] command = {
+                "ffmpeg",
+                "-i", inputPath,   // input file
+                "-c:v", "libx264", // video codec
+                "-c:a", "aac",     // audio codec
+                "-strict", "experimental", // for AAC compatibility
+                outputPath
+        };
+
+        ProcessBuilder processBuilder = new ProcessBuilder(command);
+        processBuilder.redirectErrorStream(true); // merge stderr with stdout
+
+        try {
+            Process process = processBuilder.start();
+
+            // capture output (ffmpeg logs progress here)
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println(line); // print ffmpeg output
+                }
+            }
+
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                System.out.println("Conversion completed successfully!");
+            } else {
+                System.err.println("Conversion failed. Exit code: " + exitCode);
+            }
+
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 
     public List<VideoResponseDTO> uploadToDirectory(List<MultipartFile> files) {
         List<VideoResponseDTO> videoResponseDTOList = new ArrayList<>();
         try {
             // Save the files to the local file system
             for(MultipartFile file : files) {
-                String filePath = "/Users/umerqureshi/Desktop/Computer Science/Personal Projects/SpringBoot/Tidier/uploads/" + file.getOriginalFilename();
+                String filePath = projectPath+ "/uploads/" + file.getOriginalFilename();
+                String fileName = file.getOriginalFilename();
                 file.transferTo(new File(filePath));
-                Video uploadedVid = uploadToTwelveLabsAndSave(filePath, file.getOriginalFilename());
+                if (!Objects.requireNonNull(file.getContentType()).equalsIgnoreCase("video/mp4")){ // if different video file so .mov
+                    int fileExtensionStart = file.getOriginalFilename().lastIndexOf(".");
+                    String convertedFileName = file.getOriginalFilename().substring(0, fileExtensionStart) + ".mp4";
+                    convertToMp4(filePath,projectPath+ "/uploads/" + convertedFileName );
+                    new File(filePath).delete();
+                    filePath =projectPath+ "/uploads/" + convertedFileName;
+                    fileName = convertedFileName;
+                }
+                Video uploadedVid = uploadToTwelveLabsAndSave(filePath, fileName );
                 videoResponseDTOList.add(new VideoResponseDTO(uploadedVid.getName(),uploadedVid.getVideoId()));
             }
             return videoResponseDTOList;
@@ -104,6 +147,15 @@ public class VideoService {
     @Transactional
     public void updateVideo(Video video, Montage montage) {
         video.getMontages().add(montage);
+    }
+
+    public String deleteVideo(long id) {
+        if (videoRepo.existsById(id)) {
+            new File(projectPath + "/uploads/" + videoRepo.findById(id).get().getName()).delete();
+            videoRepo.deleteById(id);
+            return "Video deleted";
+        }
+        return "Video not found";
     }
 
 
