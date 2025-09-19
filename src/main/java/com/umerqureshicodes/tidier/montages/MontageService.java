@@ -150,6 +150,7 @@ public class MontageService {
 
                 int exitCode = process.waitFor();
                 System.out.println("FFmpeg finished with exit code " + exitCode);
+                new File(outputPath).delete();
             } catch (Exception e) {
                 e.printStackTrace();
                 System.out.println(e.getMessage());
