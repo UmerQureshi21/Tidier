@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
 import FileDetails from "./FileDetails";
 import type { VideoRequestDTO, MontageRequestDTO } from "../Types";
+import { useNavigate } from "react-router";
 
-/**
- * "Give all time intervals of ${sentence}, only tell me the intervals, nothing else, and in this format: 00:00-00:06, 01:02:01:09, ..."
-
- */
 
 export default function Upload() {
+  const navigate = useNavigate();
   let [prevFiles, setPrevFiles] = useState<VideoRequestDTO[]>([]);
   let [clicks, setClicks] = useState<boolean[]>([]);
   let [sentence, setSentence] = useState<string>("");
@@ -36,7 +34,8 @@ export default function Upload() {
       videoRequestDTOs: videos,
     };
 
-    //ask why i didnt have to specify the headers for this request
+    navigate("/view-montage");
+
     await fetch("http://localhost:8080/montages", {
       method: "POST",
       headers: {
@@ -138,7 +137,7 @@ export default function Upload() {
               style={{ caretColor: "#6600FF" }}
             />
             <button
-              className="w-[20%] h-[60%] mt-[10px] text-[12px] rounded-[5px] text-center transition-ease duration-[250ms]"
+              className="w-[20%] hover:cursor-pointer h-[60%] mt-[10px] text-[12px] rounded-[5px] text-center transition-ease duration-[250ms]"
               onClick={handleSubmit}
               disabled={sentence == "" ? true : false}
               style={{
@@ -155,7 +154,7 @@ export default function Upload() {
           <h1 className="w-full text-center text-white poppins-font">
             Your Videos
           </h1>
-          <div className="bg-[rgb(20,20,20)] w-[85%] h-[200px] overflow-y-scroll  flex flex-col items-center rounded-[10px]">
+          <div className="bg-[rgb(20,20,20)] w-[85%] h-[200px] overflow-y-scroll mt-[20px]  flex flex-col items-center rounded-[10px]">
             {prevFiles.map((file, index) => (
               <div
                 className="w-full h-[50px] flex items-center justify-center mt-[20px] hover:cursor-pointer"
@@ -178,18 +177,6 @@ export default function Upload() {
                 />
               </div>
             ))}
-            {/* {files
-                ? Object.entries(files).map(([numString, file]) => (
-                    <FileDetails
-                      key={`Video ${numString}`}
-                      thumbnail={URL.createObjectURL(file)}
-                      name={file.name}
-                      size={file.size}
-                      type={file.type}
-                      isClicked={false}
-                    />
-                  ))
-                : null} */}
           </div>
         </div>
         <div className="w-full pt-[30px] bg-black flex flex-col items-center">
