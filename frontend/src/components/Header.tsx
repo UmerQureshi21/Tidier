@@ -13,8 +13,6 @@ export default function Header() {
         Your AI-powered Video
         <span className="font-normal ml-[5px]">Montage Maker</span>
       </h1>
-
-      {/* Black gradient overlay */}
       <div className="absolute top-0 left-0 right-0 bottom-0 bg-gradient-to-b from-[rgb(5,5,5)] to-transparent"></div>
     </div>
   );
