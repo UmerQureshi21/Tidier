@@ -1,15 +1,22 @@
-import Header from "./components/Header";
-import MontageArea from "./components/MontageArea";
-import Upload from "./components/Upload";
+import {
+  createBrowserRouter,
+  createRoutesFromElements,
+  Route,
+  RouterProvider,
+} from "react-router";
+import RootLayout from "./layouts/RootLayout";
+import UploadPage from "./pages/UploadPage";
+import MontagePage from "./pages/MontagePage";
 
 export default function App() {
-  return (
-    <div>
-      <Header />
-      <Upload />
-      <MontageArea/>
-    </div>
-    //#925CFE--light purple
-    //#6600FF--dark purple
+  const router = createBrowserRouter(
+    createRoutesFromElements(
+      <Route path="/" element={<RootLayout />}>
+        <Route index element={<UploadPage />} />
+        <Route path="view-montage" element={<MontagePage />} />
+      </Route>
+    )
   );
+
+  return <RouterProvider router={router} />;
 }
