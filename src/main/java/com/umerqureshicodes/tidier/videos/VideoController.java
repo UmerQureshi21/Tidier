@@ -29,6 +29,13 @@ By using a relative path and creating the folder, your app will be portable and 
     }
 
     @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
+    @DeleteMapping("/videos/{id}")
+    public String deleteVideo(@PathVariable long id) {
+        return videoService.deleteVideo(id) ;
+    }
+
+
+    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @GetMapping("/videos")
     public List<VideoResponseDTO> getAllVideos() {
         return videoService.getVideos();
