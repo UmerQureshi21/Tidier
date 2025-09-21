@@ -1,3 +1,4 @@
+import HelloWebSocket from "../components/HelloWebSocket";
 import MontageArea from "../components/MontageArea";
 import MontageCompleted from "../components/MontageCompleted";
 
@@ -6,6 +7,7 @@ import MontageCompleted from "../components/MontageCompleted";
         <div>
             <MontageCompleted/>
             <MontageArea/>
+            <HelloWebSocket/>
         </div>
     )
  }

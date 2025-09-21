@@ -2,11 +2,12 @@ package com.umerqureshicodes.tidier.montages;
 
 
 import com.umerqureshicodes.tidier.Utilities.TwelveLabsTimeStampResponse;
+import com.umerqureshicodes.tidier.Utilities.WebSocketServiceMessage;
 import com.umerqureshicodes.tidier.videos.*;
-import jakarta.transaction.Transactional;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -14,7 +15,6 @@ import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 
 @Service
 public class MontageService {
@@ -25,9 +25,37 @@ public class MontageService {
     private String projectPath;
     private final MontageRepo montageRepo;
     private final VideoService videoService;
-    public MontageService(MontageRepo montageRepo, VideoService videoService) {
+    private final SimpMessagingTemplate messagingTemplate;
+    public MontageService(MontageRepo montageRepo, VideoService videoService, SimpMessagingTemplate messagingTemplate) {
         this.montageRepo = montageRepo;
         this.videoService = videoService;
+        this.messagingTemplate = messagingTemplate;
+    }
+
+    private void notify(String message) {
+        // Push message to all clients subscribed to /topic/montage-progress
+        messagingTemplate.convertAndSend("/topic/montage-progress", new WebSocketServiceMessage(message));
+    }
+
+    private void deleteTrimmedUploads(){
+        File dir = new File(projectPath+"/trimmed-uploads");
+
+        if (dir.exists() && dir.isDirectory()) {
+            File[] files = dir.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file.isFile()) {
+                        if (file.delete()) {
+                            System.out.println("Deleted: " + file.getName());
+                        } else {
+                            System.out.println("Failed to delete: " + file.getName());
+                        }
+                    }
+                }
+            }
+        } else {
+            System.out.println("Directory does not exist or is not a directory.");
+        }
     }
 
     public MontageResponseDTO convertToDTO(Montage montage) {
@@ -52,6 +80,7 @@ public class MontageService {
            }
            // this can surely be put into one for loop
            montage.setVideos(videosInMontage);
+           deleteTrimmedUploads();
            return convertToDTO(montageRepo.save(montage));
        }
        else{
@@ -60,14 +89,12 @@ public class MontageService {
        }
 
     }
-
     //https://docs.twelvelabs.io/v1.3/api-reference/analyze-videos/analyze
     public List<String> analyzeVideoWithPrompt(MontageRequestDTO montageRequestDTO) {
 
         List<String> timestamps = new ArrayList<>();
 
         for(VideoRequestDTO v : montageRequestDTO.videoRequestDTOs()) {
-            StringBuilder timestamp = new StringBuilder(); // basically just a String but built to do += to, using append() instead
             String requestBody = "{"
                     + "\"video_id\": \"" + v.getVideoId() + "\","
                     + "\"prompt\": \"" + montageRequestDTO.sentence() + "\","
@@ -83,12 +110,11 @@ public class MontageService {
 
             if (response.getStatus() == 200 || response.getStatus() == 201) {
                 timestamps.add(response.getBody().data());
+                notify("Successfully extracted " + montageRequestDTO.prompt() + " from video " + v.getName());
             }
 
         }
-
         return timestamps;
-
     }
 
     public List<String> trimVideos(List<String> timeStamps, List<VideoRequestDTO> videoRequestDTOs) {
@@ -150,7 +176,6 @@ public class MontageService {
 
                 int exitCode = process.waitFor();
                 System.out.println("FFmpeg finished with exit code " + exitCode);
-                new File(outputPath).delete();
             } catch (Exception e) {
                 e.printStackTrace();
                 System.out.println(e.getMessage());
@@ -158,11 +183,11 @@ public class MontageService {
             }
             i++;
         }
-
+        notify("Finished trimming videos...");
         return trimmedVideosToCombine;
     }
 
-    public  int combineVideos(List<String> trimmedFiles, String outputFileName) {
+    public int combineVideos(List<String> trimmedFiles, String outputFileName) {
 
         if(trimmedFiles == null) {
             return 1;
@@ -188,9 +213,6 @@ public class MontageService {
                     "-c:a", "aac",
                     outputFileName
             );
-            // the problem is it gets the filename from trimmedvideos, but it trues to loko for that
-            // file assuming that its in the root directory, so i prepended each line
-            // in videos.txt
 
             pb.redirectErrorStream(true);
             Process process = pb.start();
@@ -212,11 +234,14 @@ public class MontageService {
 
                 Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
                 listFile.delete();
+
+
             }
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("❌ Error: " + e.getMessage());
         }
+        notify("Finished combining videos...");
         return exitCode;
     }
 
