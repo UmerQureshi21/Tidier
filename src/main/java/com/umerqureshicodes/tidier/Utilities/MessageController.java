@@ -18,7 +18,7 @@ public class MessageController {
      */
     public WebSocketServiceMessage  greeting(StompMessage  message) throws Exception {
         Thread.sleep(1000); // simulated delay
-        return new WebSocketServiceMessage("Hello, " + HtmlUtils.htmlEscape(message.getName()) + "!");
+        return new WebSocketServiceMessage("Hello, " + HtmlUtils.htmlEscape(message.getName()) + "!",null);
     }
 
 
