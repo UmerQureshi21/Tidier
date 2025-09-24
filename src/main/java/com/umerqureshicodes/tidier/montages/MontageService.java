@@ -23,6 +23,8 @@ public class MontageService {
     private String apiKey;
     @Value("${project.path}")
     private String projectPath;
+    @Value("${backend.host}")
+    private String backendHost;
     private final MontageRepo montageRepo;
     private final VideoService videoService;
     private final SimpMessagingTemplate messagingTemplate;
@@ -32,9 +34,9 @@ public class MontageService {
         this.messagingTemplate = messagingTemplate;
     }
 
-    private void notify(String message) {
+    private void notify(String message, String montagePath) {
         // Push message to all clients subscribed to /topic/montage-progress
-        messagingTemplate.convertAndSend("/topic/montage-progress", new WebSocketServiceMessage(message));
+        messagingTemplate.convertAndSend("/topic/montage-progress", new WebSocketServiceMessage(message, montagePath));
     }
 
     private void deleteTrimmedUploads(){
@@ -44,13 +46,11 @@ public class MontageService {
             File[] files = dir.listFiles();
             if (files != null) {
                 for (File file : files) {
-                    if (file.isFile()) {
                         if (file.delete()) {
                             System.out.println("Deleted: " + file.getName());
                         } else {
                             System.out.println("Failed to delete: " + file.getName());
                         }
-                    }
                 }
             }
         } else {
@@ -81,6 +81,8 @@ public class MontageService {
            // this can surely be put into one for loop
            montage.setVideos(videosInMontage);
            deleteTrimmedUploads();
+           notify(montageRequestDTO.name() +" created!",  "/montages/"+montageRequestDTO.name());
+           // add topic to send montage path to tsx component
            return convertToDTO(montageRepo.save(montage));
        }
        else{
@@ -110,7 +112,7 @@ public class MontageService {
 
             if (response.getStatus() == 200 || response.getStatus() == 201) {
                 timestamps.add(response.getBody().data());
-                notify("Successfully extracted " + montageRequestDTO.prompt() + " from video " + v.getName());
+                notify("Successfully extracted " + montageRequestDTO.prompt() + " from " + v.getName(), null);
             }
 
         }
@@ -183,12 +185,12 @@ public class MontageService {
             }
             i++;
         }
-        notify("Finished trimming videos...");
+        notify("Finished trimming videos...", null);
         return trimmedVideosToCombine;
     }
 
     public int combineVideos(List<String> trimmedFiles, String outputFileName) {
-
+        notify("Combining videos...", null);
         if(trimmedFiles == null) {
             return 1;
         }
@@ -241,7 +243,6 @@ public class MontageService {
             e.printStackTrace();
             System.out.println("❌ Error: " + e.getMessage());
         }
-        notify("Finished combining videos...");
         return exitCode;
     }
 
@@ -278,7 +279,9 @@ public class MontageService {
         // AND ALSO RENAME EACH TRIMMED VIDEO IN A BETTER MANNER
 
 
-
+        if (montageId == null || !montageRepo.existsById(montageId)) {
+            return "What, not correct montage id?";
+        }
 
          montageRepo.deleteById(montageId);
          return "Successfully deleted montage with id:" + montageId;
