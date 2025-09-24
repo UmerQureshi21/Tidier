@@ -3,7 +3,6 @@ import FileDetails from "./FileDetails";
 import type { VideoRequestDTO, MontageRequestDTO } from "../Types";
 import { useNavigate } from "react-router";
 
-
 export default function Upload() {
   const navigate = useNavigate();
   let [prevFiles, setPrevFiles] = useState<VideoRequestDTO[]>([]);
@@ -50,7 +49,7 @@ export default function Upload() {
         return res.json();
       })
       .then((data) => {
-        console.log(data)
+        console.log(data);
       })
       .catch((err) => {
         console.error("Montage upload failed my bro:", err);
