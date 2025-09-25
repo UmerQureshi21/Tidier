@@ -8,26 +8,20 @@ export default function Upload() {
   let [prevFiles, setPrevFiles] = useState<VideoRequestDTO[]>([]);
   let [clicks, setClicks] = useState<boolean[]>([]);
   let [sentence, setSentence] = useState<string>("");
+  let [title, setTitle] = useState<string>("");
+  let [videosSelected, setVideosSelected] = useState<boolean>(false);
 
   async function handleSubmit() {
-    /**
-     * This will eventually upload a montage to the montages folder. When the montages folder updates,
-     * i.e when this function is called, I want to also call the route to get all montages, which will
-     * be used for updating the MontageArea, displaying all the montages.
-     *
-     * I am aware that I can call that route in here, so that everytime the montage folder updates, I
-     * have all the montages and can pass it through via context, but I want to use a websocket to
-     * have a persistent connection between that component and the montages route.
-     */
     let videos: VideoRequestDTO[] = [];
     for (let i = 0; i < clicks.length; i++) {
       if (clicks[i]) {
         videos.push(prevFiles[i]);
+        videosSelected = true;
       }
     }
 
     let request: MontageRequestDTO = {
-      name: `montage-of-${sentence}.mp4`,
+      name: `${title}.mp4`,
       sentence: `Give all time intervals of ${sentence}, only tell me the intervals, nothing else, and in this format: 00:00-00:06, 01:02:01:09, ...`,
       prompt: sentence,
       videoRequestDTOs: videos,
@@ -122,38 +116,48 @@ export default function Upload() {
     <div className="w-full ">
       <div className="relative w-full h-[100px] bg-black prompt-section flex flex-col items-center">
         <div className="text-white poppins w-[90%] flex flex-col items-center justify-center">
-          <h1 className="w-full text-[25px] text-center">
-            Give me a montage of{" "}
-          </h1>
-          <div className="flex justify-around w-full ">
-            <input
-              type="text"
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                setSentence(e.target.value);
-              }} // react onChange is same as vanilla input event listener
-              autoFocus
-              className="w-[70%] mt-[10px] outline-none border-b-[1px] border-b-[#6600FF] pb-[3px]"
-              style={{ caretColor: "#6600FF" }}
-            />
-            <button
-              className="w-[20%] hover:cursor-pointer h-[60%] mt-[10px] text-[12px] rounded-[5px] text-center transition-ease duration-[250ms]"
-              onClick={handleSubmit}
-              disabled={sentence == "" ? true : false}
-              style={{
-                backgroundColor: sentence == "" ? "#222222" : "#925CFE",
-              }}
-            >
-              Generate!
-            </button>
+          <div className="flex flex-col items-center w-full ">
+            <div className="flex w-full justify-between items-center">
+              <h1 className="w-[20%] text-[25px]">Topic: </h1>
+              <input
+                type="text"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setSentence(e.target.value);
+                }} // react onChange is same as vanilla input event listener
+                autoFocus
+                className="w-[77%] mt-[10px] outline-none border-b-[1px] border-b-[#6600FF] pb-[3px]"
+                style={{ caretColor: "#6600FF" }}
+              />
+            </div>
+            <div className="flex w-full justify-between items-center">
+              <h1 className="w-[20%] text-[25px]">Title: </h1>
+              <input
+                type="text"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setTitle(e.target.value);
+                }} // react onChange is same as vanilla input event listener
+                autoFocus
+                className="w-[77%] mt-[10px] outline-none border-b-[1px] border-b-[#6600FF] pb-[3px]"
+                style={{ caretColor: "#6600FF" }}
+              />
+            </div>
           </div>
+          <button
+            className="hover:cursor-pointer mt-[15px] hover:shadow-[0_0_10px_white] shadow-[0_0_0_white] transition duration-150 ease relative w-[80%] bg-[#925CFE] px-[30px] py-[15px] rounded-[20px] poppins-font text-white text-[20px]"
+            onClick={handleSubmit}
+            disabled={sentence == "" || title == "" ? true : false}
+            style={{
+              backgroundColor:
+                sentence == "" || title == "" ? "#222222" : "#925CFE",
+            }}
+          >
+            Generate Montage!
+          </button>
         </div>
       </div>
       <div>
         <div className="w-full bg-black flex flex-col items-center h-[250px]">
-          <h1 className="w-full text-center text-white poppins-font">
-            Your Videos
-          </h1>
-          <div className="bg-[rgb(20,20,20)] w-[85%] h-[200px] overflow-y-scroll mt-[20px]  flex flex-col items-center rounded-[10px]">
+          <div className="bg-[rgb(20,20,20)] w-[85%] h-[200px] overflow-y-scroll mt-[60px]  flex flex-col items-center rounded-[10px]">
             {prevFiles.map((file, index) => (
               <div
                 className="w-full h-[50px] flex items-center justify-center mt-[20px] hover:cursor-pointer"
@@ -183,7 +187,7 @@ export default function Upload() {
             onMouseEnter={() => {
               console.log("Button got hovered!");
             }}
-            className="hover:cursor-pointer hover:shadow-[0_0_10px_white] shadow-[0_0_0_white] transition duration-150 ease relative w-[60%] bg-[#925CFE] px-[30px] py-[15px] rounded-[20px] poppins-font text-white text-[20px]"
+            className="hover:cursor-pointer mt-[-20px] hover:shadow-[0_0_10px_white] shadow-[0_0_0_white] transition duration-150 ease relative w-[60%] bg-[#925CFE] px-[30px] py-[15px] rounded-[20px] poppins-font text-white text-[20px]"
           >
             <input
               type="file"
@@ -194,12 +198,15 @@ export default function Upload() {
             />
             Upload Videos
           </button>
-          <h1 className=" mt-[20px] text-white w-[80%] text-center">
-            Upload your trip clips here, and{" "}
-            <span className="font-bold text-[#6600FF]">Tidier</span> will
-            display your{" "}
-            <span className="font-bold text-[#6600FF]">personalized </span>{" "}
-            montage below!
+          <h1 className="mb-[10px] mt-[10px] text-white w-[80%] text-center">
+            Upload your cluttered videos, and{" "}
+            <span className="font-bold text-[#6600FF]">Tidier</span> will create
+            your
+            <span className="font-bold text-[#6600FF]">
+              {" "}
+              personalized{" "}
+            </span>{" "}
+            montage!
           </h1>
         </div>
       </div>
