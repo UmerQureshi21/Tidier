@@ -1,12 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import * as StompJs from "@stomp/stompjs";
+import { useNavigate } from "react-router";
 
 export default function MontageProgressWebSocket() {
+  let navigate = useNavigate();
+  const dummyMontagePath = "/montages/null.mp4";
   const [progressMessage, setProgressMessage] = useState<string>(
     "Starting Montage Creation..."
   );
   const clientRef = useRef<StompJs.Client | null>(null);
-  const [montagePath, setMontagePath] = useState<string>("/montages/null.mp4");
+  const [montagePath, setMontagePath] = useState<string>(dummyMontagePath);
 
   // for forcing re-renders of <video>
   const [reloadKey, setReloadKey] = useState(0);
@@ -60,10 +63,10 @@ export default function MontageProgressWebSocket() {
   return (
     <>
       <div className="relative w-full bg-black h-[60px] flex items-center justify-center prompt-section">
-        <h1 className="w-[70%] text-[white] text-[20px] text-center">
+        <h1 className="w-[70%] text-[white] text-[20px] text-center overflow-x-scroll whitespace-nowrap">
           {progressMessage}
         </h1>
-        {montagePath == null ? (
+        {montagePath != dummyMontagePath ? (
           <div></div>
         ) : (
           <svg
@@ -97,11 +100,11 @@ export default function MontageProgressWebSocket() {
         )}
       </div>
       <div className="w-full bg-black pb-[100px] flex flex-col items-center text-white">
-        <div className="w-[80%] h-[400px] bg-[rgb(20,20,20)] flex items-center justify-center rounded-[20px]">
+        <div className="w-[80%] h-[300px] bg-[rgb(20,20,20)] flex items-center justify-center rounded-[20px]">
           <video
             key={`${montagePath}-${reloadKey}`} // new key = re-render
             src={montagePath}
-            className="w-[80%] h-[350px] rounded-[40px]"
+            className="w-[80%] h-[250px] rounded-[40px]"
             controls
             autoPlay
             onPlay={() => {
@@ -113,6 +116,14 @@ export default function MontageProgressWebSocket() {
             }}
           />
         </div>
+        <button
+          onClick={() => {
+            navigate("/");
+          }}
+          className="hover:cursor-pointer mt-[15px] hover:shadow-[0_0_10px_white] shadow-[0_0_0_white] transition duration-150 ease relative w-[80%] bg-[#925CFE] px-[30px] py-[15px] rounded-[20px] poppins-font text-white text-[20px]"
+        >
+          Create New Montage
+        </button>
       </div>
     </>
   );
