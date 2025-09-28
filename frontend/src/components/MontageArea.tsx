@@ -3,6 +3,7 @@ import * as StompJs from "@stomp/stompjs";
 import { useNavigate } from "react-router";
 
 export default function MontageProgressWebSocket() {
+  const backendURL = import.meta.env.VITE_BACKEND_URL;
   let navigate = useNavigate();
   const dummyMontagePath = "/montages/null.mp4";
   const [progressMessage, setProgressMessage] = useState<string>(
@@ -18,7 +19,7 @@ export default function MontageProgressWebSocket() {
   // WebSocket setup
   useEffect(() => {
     const client = new StompJs.Client({
-      brokerURL: "ws://localhost:8080/gs-guide-websocket",
+      brokerURL: `ws://${backendURL}/gs-guide-websocket`,
       reconnectDelay: 2000,
       debug: (str) => console.log(str),
       onConnect: (frame) => {

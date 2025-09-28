@@ -1,12 +1,13 @@
+rename this file to application.properties and remove this line
 spring.application.name=Tidier
 spring.config.import=optional:classpath:application-secrets.properties
 spring.servlet.multipart.max-file-size=200MB
 spring.servlet.multipart.max-request-size=200MB
-spring.datasource.url = jdbc:postgresql://localhost:5436/postgres
+spring.datasource.url = jdbc:postgresql://localhost:POSTGRES_SERVER_PORT/postgres
 spring.datasource.driver-class-name=org.postgresql.Driver
-spring.datasource.username=umerqureshi
-spring.datasource.password=
+spring.datasource.username=YOUR_USER_NAME
+spring.datasource.password=YOUR_PASSOWRD
 spring.jpa.hibernate.ddl-auto=update
-frontend.host=http://localhost:5173
+frontend.host=FRONT_END_PORT
 backend.host=http://localhost:8080
-project.path=/Users/umerqureshi/Desktop/Computer Science/Personal Projects/SpringBoot/Tidier
+project.path=/absolute/path/to/project/folder
