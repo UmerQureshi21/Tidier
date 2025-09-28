@@ -4,6 +4,7 @@ import type { VideoRequestDTO, MontageRequestDTO } from "../Types";
 import { useNavigate } from "react-router";
 
 export default function Upload() {
+  const backendURL = import.meta.env.VITE_BACKEND_URL;
   const navigate = useNavigate();
   let [prevFiles, setPrevFiles] = useState<VideoRequestDTO[]>([]);
   let [clicks, setClicks] = useState<boolean[]>([]);
@@ -29,7 +30,7 @@ export default function Upload() {
 
     navigate("/view-montage");
 
-    await fetch("http://localhost:8080/montages", {
+    await fetch(`http://${backendURL}/montages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json", // tell backend to expect JSON
@@ -53,7 +54,7 @@ export default function Upload() {
   }
 
   async function getAllFiles() {
-    await fetch("http://localhost:8080/videos")
+    await fetch(`http://${backendURL}/videos`)
       .then((res) => {
         if (!res.ok) {
           throw new Error(`Server responded with status ${res.status}`);
@@ -92,7 +93,7 @@ export default function Upload() {
         console.log(`File ${index}: ${file}`);
         request.append("files", file);
       }
-      fetch("http://localhost:8080/videos", {
+      fetch(`http://${backendURL}/videos`, {
         method: "POST",
         body: request,
       })
