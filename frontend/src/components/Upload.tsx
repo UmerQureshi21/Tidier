@@ -183,7 +183,7 @@ export default function Upload() {
             ))}
           </div>
         </div>
-        <div className="w-full pt-[30px] bg-black flex flex-col items-center">
+        <div className="w-full pt-[40px] bg-black flex flex-col items-center">
           <button
             onMouseEnter={() => {
               console.log("Button got hovered!");
