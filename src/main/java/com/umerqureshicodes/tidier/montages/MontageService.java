@@ -125,12 +125,17 @@ public class MontageService {
 
         //timestamps in format of [[00:00-00:04, 00:04-00:08, 00:11-00:13],[00:01-00:03, 00:10-00:12]]
         for (int i = 0; i < timeStamps.size(); i++) {
-
+            if (timeStamps.get(i).equals("")) {
+                System.out.println("\n\n\n\nYo this is like empty right!\n");
+            }
             // POSSIBILITY OF TIMESTAMPS BEING NONE I THINK
             for(String timeStamp : timeStamps.get(i).split(", ")) {
                 if (!timeStamp.isEmpty()){
                     HashMap<String,String> interval = new HashMap<>();
                     String[] times = timeStamp.split("-");
+                    for (int j = 0; j < times.length; j++) {
+                        System.out.println("TIMES ELEMENT:" + times[j]);
+                    }
                     interval.put("start", "00:"+times[0]+".000");
                     interval.put("end", "00:"+times[1]+".000");
                     interval.put("video",videoRequestDTOs.get(i).getName());
@@ -171,10 +176,10 @@ public class MontageService {
 
                 // Capture output (optional, for debugging)
                 BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    System.out.println(line);
-                }
+//                String line;
+//                while ((line = reader.readLine()) != null) {
+//                    System.out.println(line);
+//                }
 
                 int exitCode = process.waitFor();
                 System.out.println("FFmpeg finished with exit code " + exitCode);
@@ -224,7 +229,7 @@ public class MontageService {
                     new InputStreamReader(process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    System.out.println(line);
+                  //  System.out.println(line);
                 }
             }
 
