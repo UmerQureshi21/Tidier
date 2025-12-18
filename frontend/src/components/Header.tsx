@@ -23,12 +23,18 @@ export default function Header({ height }: props) {
 
   return (
     <div
-      className={`relative w-full h-[${
-        windowWidth >= MEDIUM_WIDTH_SIZE ? height : 320
-      }px] flex flex-col justify-center`}
+      className="relative w-full flex flex-col justify-center"
+      style={{
+        height: windowWidth >= MEDIUM_WIDTH_SIZE ? height : 320,
+      }}
     >
       {windowWidth >= MEDIUM_WIDTH_SIZE ? (
-        <div className={`w-full h-[${height}px]`}>
+        <div
+          className="w-full"
+          style={{
+            height: height,
+          }}
+        >
           <Carousel
             images={[
               "/times-square.jpg",
