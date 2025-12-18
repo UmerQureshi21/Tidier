@@ -6,11 +6,13 @@ import {
 } from "react-router";
 
 import RootLayout from "./layouts/RootLayout";
-import UploadPage from "./pages/UploadPage";
 import MontagePage from "./pages/MontagePage";
 import HomePage from "./pages/HomePage";
 import LogInPage from "./pages/LogInPage";
 import VideoLibraryPage from "./pages/VideoLibraryPage";
+import DashBoardPage from "./pages/DashBoardPage";
+import CreateMontagePage from "./pages/CreateMontagePage";
+import NotFoundPage from "./pages/NotFoundPage";
 
 export default function App() {
   const router = createBrowserRouter(
@@ -20,11 +22,14 @@ export default function App() {
         <Route path="/account" element={<LogInPage />} />
 
         <Route path="/app" element={<RootLayout />}>
-          <Route path="upload" element={<UploadPage />} />
+          <Route index path="dashboard" element={<DashBoardPage />} />
+          <Route path="upload" element={<CreateMontagePage />} />
           <Route path="viewing" element={<MontagePage />} />
-          <Route path="videos" element={<VideoLibraryPage/>} />
-
+          <Route path="videos" element={<VideoLibraryPage />} />
         </Route>
+
+        {/* Catch-all route for 404 */}
+        <Route path="*" element={<NotFoundPage />} />
       </>
     )
   );
