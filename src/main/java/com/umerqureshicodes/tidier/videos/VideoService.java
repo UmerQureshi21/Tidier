@@ -94,8 +94,19 @@ public class VideoService {
                     filePath =projectPath+ "/uploads/" + convertedFileName;
                     fileName = convertedFileName;
                 }
-                Video uploadedVid = uploadToTwelveLabsAndSave(filePath, fileName );
-                videoResponseDTOList.add(new VideoResponseDTO(uploadedVid.getName(),uploadedVid.getVideoId()));
+               /*
+                UPLOAD LATER, RIGHT NOW JUST IMPLEMENTING VIDEO LIBRARY COMPONENT
+
+               Video uploadedVid = uploadToTwelveLabsAndSave(filePath, fileName );
+
+                */
+               // videoResponseDTOList.add(new VideoResponseDTO(uploadedVid.getName(),uploadedVid.getVideoId()));
+
+                // BOTTOM THREE LINES ARE TEMP, SAVE DOESNT HAPPEN HERE
+
+                String DUMMY_ID = "DUMMY ID: "+ UUID.randomUUID().toString().replace("-", "");
+                videoRepo.save(new Video(DUMMY_ID,fileName ));
+                videoResponseDTOList.add(new VideoResponseDTO(fileName ,DUMMY_ID));
             }
             return videoResponseDTOList;
         } catch (IOException e) {
@@ -157,9 +168,4 @@ public class VideoService {
         }
         return "Video not found";
     }
-
-
-
-
-
 }

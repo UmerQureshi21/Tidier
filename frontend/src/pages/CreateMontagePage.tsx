@@ -1,6 +1,6 @@
 import Upload from "../components/Upload";
 
-export default function UploadPage() {
+export default function CreateMontagePage() {
   return (
     <div>
       <Upload />
