@@ -44,6 +44,33 @@ export default function PopUp() {
     setClicked((prev) => !prev);
   }
 
+  const widthPercent = 90;
+  const fontSize = 35;
+  const linkColour = "white";
+
+  const pages = [
+    {
+      page: "/dashboard",
+      text: "Dashboard",
+    },
+    {
+      page: "/videos",
+      text: "Video Library",
+    },
+    {
+      page: "/montages",
+      text: "Montage Library",
+    },
+    {
+      page: "/create",
+      text: "Create Montage",
+    },
+    {
+      page: "/acccount",
+      text: "Account",
+    },
+  ];
+
   return (
     <>
       <div
@@ -53,7 +80,8 @@ export default function PopUp() {
           top: `${0}px`,
           width: `${clientWidth}px`,
           transform: isClicked ? "translateX(0)" : "translateX(100%)",
-          transition: isClicked || !isClicked ? "transform 500ms ease-in-out" : "none",
+          transition:
+            isClicked || !isClicked ? "transform 500ms ease-in-out" : "none",
         }}
       >
         {/* Close button - positioned at top right */}
@@ -86,71 +114,22 @@ export default function PopUp() {
         </div>
 
         <div className="w-[90%] flex flex-col relative space-y-6 z-10">
-          <div
-            onClick={() => {
-              setClicked((prev) => !prev);
-            }}
-          >
-            <NavBarLink
-              page="/"
-              text="Dashboard"
-              widthPercent={90}
-              fontSize={35}
-              colour="white"
-            />
-          </div>
-          <div
-            onClick={() => {
-              setClicked((prev) => !prev);
-            }}
-          >
-            <NavBarLink
-              page="/our-team"
-              text="Video Library"
-              widthPercent={90}
-              fontSize={35}
-              colour="white"
-            />
-          </div>
-          <div
-            onClick={() => {
-              setClicked((prev) => !prev);
-            }}
-          >
-            <NavBarLink
-              page="/past-events"
-              text="Create Montage"
-              widthPercent={90}
-              fontSize={35}
-              colour="white"
-            />
-          </div>
-          <div
-            onClick={() => {
-              setClicked((prev) => !prev);
-            }}
-          >
-            <NavBarLink
-              page="/dummy-link"
-              text="Montage Library"
-              widthPercent={90}
-              fontSize={35}
-              colour="white"
-            />
-          </div>
-          <div
-            onClick={() => {
-              setClicked((prev) => !prev);
-            }}
-          >
-            <NavBarLink
-              page="/dummy-link"
-              text="Account"
-              widthPercent={90}
-              fontSize={35}
-              colour="white"
-            />
-          </div>
+          {pages.map((pageComponent, index) => (
+            <div
+              key={`pop up link ${index}`}
+              onClick={() => {
+                setClicked((prev) => !prev);
+              }}
+            >
+              <NavBarLink
+                page={`/app${pageComponent.page}`}
+                text={pageComponent.text}
+                widthPercent={widthPercent}
+                fontSize={fontSize}
+                colour={linkColour}
+              />
+            </div>
+          ))}
         </div>
 
         {/* Footer accent */}
