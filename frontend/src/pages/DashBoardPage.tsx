@@ -1,7 +1,20 @@
 export default function () {
-  return <div className="bg-red-500 min-h-screen w-full">DASHBOARD PAGE
-  
-  <video src="https://tidier.s3.amazonaws.com/test/london-castle.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20251220T051847Z&X-Amz-SignedHeaders=host&X-Amz-Expires=600&X-Amz-Credential=AKIAZTYAHU7SPWOAEJ7I%2F20251220%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=6e07b9745e4654a6495d55bf140669992df388c0f649ea9d21d187e08544d5f7" autoPlay controls></video>
-  
-  </div>;
+  let preSignedURL1 =
+    "https://tidier.s3.amazonaws.com/test/london-castle.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20251221T054942Z&X-Amz-SignedHeaders=host&X-Amz-Expires=600&X-Amz-Credential=AKIAZTYAHU7SPWOAEJ7I%2F20251221%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=210f1fc36ac3dcab07b003b996309c66fba920356e375cd47f280fc71de65955";
+  let preSignedURL2 =
+    "https://tidier.s3.amazonaws.com/test/ny-helicopter.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20251221T054942Z&X-Amz-SignedHeaders=host&X-Amz-Expires=600&X-Amz-Credential=AKIAZTYAHU7SPWOAEJ7I%2F20251221%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=05ce6ec2386a7d86e55c12629e542855cc85557ad7f31aa5cf2c4970305d6ed7";
+  let preSignedURL3 =
+    "https://tidier.s3.amazonaws.com/test/ny-streets.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20251221T054942Z&X-Amz-SignedHeaders=host&X-Amz-Expires=600&X-Amz-Credential=AKIAZTYAHU7SPWOAEJ7I%2F20251221%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=25299b2ac7f4cfb69e72f7c4470e5563213de606c9d1230c1189885177b60c0e";
+  let preSignedURL4 =
+    "https://tidier.s3.amazonaws.com/test/staten-island-streets.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20251221T054942Z&X-Amz-SignedHeaders=host&X-Amz-Expires=600&X-Amz-Credential=AKIAZTYAHU7SPWOAEJ7I%2F20251221%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=0a9b64e36ddee2a5f929c9b00238304b4a91fca57a62b1a332dc61ad429211e2";
+
+  return (
+    <div className="bg-red-500 min-h-screen w-full">
+      DASHBOARD PAGE
+      <video src={preSignedURL1}  controls></video>
+      <video src={preSignedURL2}  controls></video>
+      <video src={preSignedURL3}  controls></video>
+      <video src={preSignedURL4}  controls></video>
+    </div>
+  );
 }

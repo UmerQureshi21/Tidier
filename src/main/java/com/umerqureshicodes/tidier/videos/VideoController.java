@@ -31,8 +31,8 @@ By using a relative path and creating the folder, your app will be portable and 
     }
 
     @GetMapping("/s3-test/{key}")
-    public ResponseEntity<Map<String, String>> getVideoUrl(@PathVariable String key) {
-        return videoService.getVideoUrl(key);
+    public List<VideoResponseDTO> getVideoUrl(@PathVariable String key) {
+        return videoService.getVideos();
     }
 
 
