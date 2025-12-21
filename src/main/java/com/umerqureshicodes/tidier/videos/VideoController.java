@@ -1,10 +1,14 @@
 package com.umerqureshicodes.tidier.videos;
 
-import org.springframework.beans.factory.annotation.Value;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 public class VideoController {
@@ -21,12 +25,23 @@ By using a relative path and creating the folder, your app will be portable and 
         this.videoService = videoService;
     }
 
-
-    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
-    @PostMapping("/videos")
-    public List<VideoResponseDTO> uploadVideo(@RequestParam("files") List<MultipartFile> multipartFiles) {
-        return videoService.uploadToDirectory(multipartFiles);
+    @PostMapping("/s3-test")
+    public List<VideoResponseDTO> uploadVideoToBucket(@RequestParam("files") List<MultipartFile> multipartFiles) {
+        return videoService.save(multipartFiles);
     }
+
+    @GetMapping("/s3-test/{key}")
+    public ResponseEntity<Map<String, String>> getVideoUrl(@PathVariable String key) {
+        return videoService.getVideoUrl(key);
+    }
+
+
+
+//    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
+//    @PostMapping("/videos")
+//    public List<VideoResponseDTO> uploadVideo(@RequestParam("files") List<MultipartFile> multipartFiles) {
+//        return videoService.uploadToDirectory(multipartFiles);
+//    }
 
     @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @DeleteMapping("/videos/{id}")
