@@ -163,7 +163,13 @@ public class VideoService {
     public List<VideoResponseDTO> getVideos() {
         List<VideoResponseDTO> videoResponseDTOList = new ArrayList<>();
         for (Video video : videoRepo.findAll()) {
-            videoResponseDTOList.add(new VideoResponseDTO(video.getName(),video.getVideoId()));
+            if (video.getId() >= 20) { // ONLY 20TH VIDEO AND ONWARDS HAVE AWS STORED VIDEO, REMOVE THIS LOGIC AFTER
+                String preSignedUrl = s3Service.generatePresignedGetUrl("tidier", "test/"+video.getName()).toString();
+                videoResponseDTOList.add(new VideoResponseDTO(video.getName(),video.getVideoId(),preSignedUrl));
+            }
+            else{
+                videoResponseDTOList.add(new VideoResponseDTO(video.getName(),video.getVideoId()));
+            }
         }
         return videoResponseDTOList;
     }
@@ -188,12 +194,8 @@ public class VideoService {
 
 
 
-    public ResponseEntity<Map<String, String>> getVideoUrl(String key) {
+    public String getVideoUrl(String key) {
         String FAKE_KEY = "test/london-castle.mp4";
-        URL url = s3Service.generatePresignedGetUrl("tidier", FAKE_KEY );
-
-        return ResponseEntity.ok( // turn this into a response DTO
-                Map.of("url", url.toString())
-        );
+        return s3Service.generatePresignedGetUrl("tidier", FAKE_KEY ).toString();
     }
 }
