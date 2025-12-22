@@ -23,7 +23,7 @@ export default function Upload() {
 
     let request: MontageRequestDTO = {
       name: `${title}.mp4`,
-      sentence: `Give all time intervals of ${sentence}, only tell me the intervals, nothing else, and in this format: 00:00-00:06, 01:02:01:09, ...`,
+      sentence: `Give all time intervals of ${sentence}, only tell me the intervals, nothing else, and in this format: 00:00-00:06, 01:02-01:09, ...`,
       prompt: sentence,
       videoRequestDTOs: videos,
     };

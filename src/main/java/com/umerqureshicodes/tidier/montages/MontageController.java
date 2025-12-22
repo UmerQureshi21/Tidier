@@ -21,4 +21,9 @@ public class MontageController {
     public String deleteMontage(@PathVariable Long id) {
         return montageService.deleteMontage(id);
     }
+
+    @GetMapping("montages")
+    public String getUrl(){
+        return montageService.getVideoUrl("this doesn't matter");
+    }
 }
