@@ -7,6 +7,7 @@ import java.util.List;
 public record MontageResponseDTO(
         String name,
         List<VideoResponseDTO> videos,
-        String prompt
+        String prompt,
+        String preSignedUrl
 ) {
 }
