@@ -1,6 +1,7 @@
 export type VideoRequestDTO = {
   name: string;
-  videoId: string
+  videoId: string;
+  previewUrl: string;
 }
 
 export type MontageRequestDTO = {
