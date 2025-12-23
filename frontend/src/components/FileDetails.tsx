@@ -44,6 +44,7 @@ export default function FileDetails({
           src={videoSrc}
           controls
           muted
+          crossOrigin="anonymous"
           className="w-full h-full object-cover"
           onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
         />
