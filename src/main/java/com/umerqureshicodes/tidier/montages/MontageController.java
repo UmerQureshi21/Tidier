@@ -2,6 +2,8 @@ package com.umerqureshicodes.tidier.montages;
 
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 public class MontageController {
 
@@ -23,7 +25,7 @@ public class MontageController {
     }
 
     @GetMapping("montages")
-    public String getUrl(){
-        return montageService.getVideoUrl("this doesn't matter");
+    public List<MontageResponseDTO> getUrl(){
+        return montageService.getMontages();
     }
 }

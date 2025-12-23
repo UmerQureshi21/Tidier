@@ -116,23 +116,13 @@ public class MontageService {
 
         //timestamps in format of [[00:00-00:04, 00:04-00:08, 00:11-00:13],[00:01-00:03, 00:10-00:12]]
         for (int i = 0; i < timeStamps.size(); i++) {
-            if (timeStamps.get(i).isEmpty()) {
-                System.out.println("\n\n\n\nYo this is like empty right!\n");
-            }
-            // POSSIBILITY OF TIMESTAMPS BEING NONE I THINK
             for(String timeStamp : timeStamps.get(i).split(", ")) {
-                if (!timeStamp.isEmpty()){
                     HashMap<String,String> interval = new HashMap<>();
                     String[] times = timeStamp.split("-");
                     interval.put("start", "00:"+times[0]+".000");
                     interval.put("end", "00:"+times[1]+".000");
                     interval.put("video",videoRequestDTOs.get(i).getName());
                     intervals.add(interval);
-                }
-                else{
-                    System.out.println("\n\n\n\nNo time stamp found of montage request!!!\n\n\n\n");
-                }
-
             }
         }
         int i = 0;
@@ -188,8 +178,6 @@ public class MontageService {
             }
             i++;
         }
-
-
         //notify("Finished trimming videos...", null);
         return trimmedVideosToCombine;
     }
@@ -247,29 +235,19 @@ public class MontageService {
         return exitCode;
     }
 
-    public List<String> getMontages() {
-
-
-        // SHOULD BE CAHGNED TO REPO . FINDALL AND THEN YOU PREPEND /montages/
-        List<String> filesList = new ArrayList<>();
-        Path montagesPath = Paths.get(System.getProperty("user.dir"), "frontend", "public", "montages");
-
-
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(montagesPath)) {
-            for (Path path : stream) {
-                File file = path.toFile();
-                if (file.isFile()) {
-                    filesList.add("/montages/" + file.getName());
-                }
+    public List<MontageResponseDTO> getMontages() {
+        List<MontageResponseDTO> montageResponseDTOs = new ArrayList<>();
+        List<Montage> montages = montageRepo.findAll();
+        for (Montage montage : montages) {
+            List<VideoResponseDTO> videoResponseDTOs = new ArrayList<>();
+            List<Video> videos = montage.getVideos();
+            for (Video video : videos) {
+                videoResponseDTOs.add(new VideoResponseDTO(video.getName(),video.getVideoId()));
             }
+            String preSignedUrl = s3Service.generatePresignedGetUrl("tidier","montages/"+montage.getName()).toString();
+            montageResponseDTOs.add(new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt(),preSignedUrl));
         }
-        catch (IOException e) {
-            e.printStackTrace();
-            return null;
-            // optionally return an empty list if there's an error
-        }
-
-        return filesList;
+        return montageResponseDTOs;
     }
 
     public String deleteMontage(Long montageId) {
@@ -309,11 +287,4 @@ public class MontageService {
 
         return tempFile;
     }
-
-    public String getVideoUrl(String key) {
-        String FAKE_KEY = "montages/balloons!!.mp4";
-        return s3Service.generatePresignedGetUrl("tidier", FAKE_KEY ).toString();
-    }
-
-
 }
