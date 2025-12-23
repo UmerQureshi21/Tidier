@@ -4,6 +4,11 @@ import type { VideoRequestDTO, MontageRequestDTO } from "../Types";
 import { useNavigate } from "react-router";
 import axios from "axios";
 
+// Cache variables (persist across component mounts)
+let cachedVideos: VideoRequestDTO[] | null = null;
+let cacheTime: number = 0;
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+
 export default function Upload() {
   const backendURL = import.meta.env.VITE_BACKEND_URL;
   const navigate = useNavigate();
@@ -55,6 +60,17 @@ export default function Upload() {
 
   async function getAllFiles() {
     try {
+      const now = Date.now();
+      
+      // Check if cache exists and is still valid
+      if (cachedVideos && now - cacheTime < CACHE_DURATION) {
+        console.log("Using cached videos");
+        setPrevFiles(cachedVideos);
+        return;
+      }
+      
+      // Fetch new data
+      console.log("Fetching fresh videos from API");
       const res = await axios.get(`http://${backendURL}/videos`);
       const data = res.data;
 
@@ -65,8 +81,11 @@ export default function Upload() {
         console.log(file.previewUrl);
       }
 
-      //console.log("Upload successful:", fileDetails);
       setPrevFiles(fileDetails);
+      
+      // Store in cache
+      cachedVideos = fileDetails;
+      cacheTime = now;
     } catch (err) {
       console.error("Upload failed bro:", err);
     }
@@ -104,7 +123,7 @@ export default function Upload() {
             onMouseEnter={() => {
               console.log("Button got hovered!");
             }}
-            className="hover:cursor-pointer mt-[-20px] hover:shadow-[0_0_10px_white] shadow-[0_0_0_white] transition duration-150 ease relative w-[60%] bg-[#925CFE] px-[30px] py-[15px] rounded-[20px] poppins-font text-white text-[20px]"
+            className="hover:cursor-pointer mt-[-20px] hover:shadow-[0_0_10px_white] shadow-[0_0_0_white] transition duration-350 ease relative w-[60%] bg-[#925CFE] px-[30px] py-[15px] rounded-[20px] poppins-font text-white text-[20px]"
           >
             <input
               type="file"
