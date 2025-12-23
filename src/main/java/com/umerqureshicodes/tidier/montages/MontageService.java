@@ -112,6 +112,7 @@ public class MontageService {
     public List<String> trimVideos(List<String> timeStamps, List<VideoRequestDTO> videoRequestDTOs) {
         List<HashMap<String,String>> intervals = new ArrayList<>();
         List<String> trimmedVideosToCombine = new ArrayList<>();
+        int emptyTimeStampCount = 0;
 
         //timestamps in format of [[00:00-00:04, 00:04-00:08, 00:11-00:13],[00:01-00:03, 00:10-00:12]]
         for (int i = 0; i < timeStamps.size(); i++) {
@@ -138,59 +139,65 @@ public class MontageService {
         for(HashMap<String,String> interval : intervals)
         {
             System.out.println(interval.get("start")+" "+interval.get("end")+" "+interval.get("video"));
-            try {
-                URL videoUrl = s3Service.generatePresignedGetUrl("tidier","test/"+interval.get("video"));
-                System.out.println(videoUrl.toString());
-                File inputTempFile = downloadPresignedUrlToTempFile(videoUrl.toString());
-                //File outputTempFile = Files.createTempFile("trimmedTest-"+i+"-", interval.get("video")+".mp4").toFile();
-                //String outputTempFilePath = outputTempFile.getAbsolutePath();
-                //trimmedVideosToCombine.add(outputTempFilePath);
+            if (!interval.get("start").equals(interval.get("end"))) {
+                try {
+                    URL videoUrl = s3Service.generatePresignedGetUrl("tidier", "test/" + interval.get("video"));
+                    System.out.println(videoUrl.toString());
+                    File inputTempFile = downloadPresignedUrlToTempFile(videoUrl.toString());
+                    String trimmedVideoName = interval.get("video") + "-trimmed-" + UUID.randomUUID().toString() + ".mp4";
+                    String outputPath = projectPath + "/trimmed-uploads/" + trimmedVideoName;
+                    trimmedVideosToCombine.add(trimmedVideoName);
 
-                String trimmedVideoName = interval.get("video")+"-trimmed-"+ UUID.randomUUID().toString() +".mp4";
-                String outputPath = projectPath + "/trimmed-uploads/"+trimmedVideoName;
-                trimmedVideosToCombine.add(trimmedVideoName);
+                    //Problem is that I'm pretty sure the local version ffmpeg creates the file, but for the cloud one i made the file before which didnt work
+                    Path tempPath = Paths.get(System.getProperty("java.io.tmpdir"), trimmedVideoName);
 
-                //Problem is that I'm pretty sure the local version ffmpeg creates the file, but for the cloud one i made the file before which didnt work
-                Path tempPath = Paths.get(System.getProperty("java.io.tmpdir"),trimmedVideoName);
+                    ProcessBuilder pb = new ProcessBuilder(
+                            "ffmpeg",
+                            "-y", // overwrite if I need too
+                            "-i", inputTempFile.getAbsolutePath(),
+                            "-ss", interval.get("start"),
+                            "-to", interval.get("end"),
+                            "-c:v", "libx264",
+                            "-crf", "23",
+                            "-preset", "fast",
+                            "-c:a", "aac",
+                            "-b:a", "192k",
+                            tempPath.toString()
+                    );
 
-                ProcessBuilder pb = new ProcessBuilder(
-                        "ffmpeg",
-                        "-y", // overwrite if I need too
-                        "-i", inputTempFile.getAbsolutePath(),
-                        "-ss", interval.get("start"),
-                        "-to", interval.get("end"),
-                        "-c:v", "libx264",
-                        "-crf", "23",
-                        "-preset", "fast",
-                        "-c:a", "aac",
-                        "-b:a", "192k",
-                        tempPath.toString()
-                );
+                    pb.redirectErrorStream(true); // merge stderr into stdout
+                    Process process = pb.start();
 
-                pb.redirectErrorStream(true); // merge stderr into stdout
-                Process process = pb.start();
-
-                // Capture output (optional, for debugging)
-                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    System.out.println(line);
+                    // Capture output (optional, for debugging)
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        System.out.println(line);
+                    }
+                    int exitCode = process.waitFor();
+                    System.out.println("FFmpeg finished with exit code " + exitCode);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    System.out.println("ERROR WAS CAUGHT: \n" + e.getMessage());
+                    return null;
                 }
-                int exitCode = process.waitFor();
-                System.out.println("FFmpeg finished with exit code " + exitCode);
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.out.println("ERROR WAS CAUGHT: \n"+e.getMessage());
-                return null;
+            }
+            else{
+                System.out.println("No time stamp found in" + interval.get("video"));
+                emptyTimeStampCount++;
             }
             i++;
         }
+
+
         //notify("Finished trimming videos...", null);
         return trimmedVideosToCombine;
     }
 
     public int combineVideos(List<String> trimmedFiles, String outputFileName) {
         //notify("Combining videos...", null);
+
+
         String tempDir = System.getProperty("java.io.tmpdir");
         if(trimmedFiles == null) {
             return 1;
@@ -304,7 +311,7 @@ public class MontageService {
     }
 
     public String getVideoUrl(String key) {
-        String FAKE_KEY = "montages/test-montage-of-roads.mp4";
+        String FAKE_KEY = "montages/balloons!!.mp4";
         return s3Service.generatePresignedGetUrl("tidier", FAKE_KEY ).toString();
     }
 
