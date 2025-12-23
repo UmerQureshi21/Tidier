@@ -185,7 +185,6 @@ public class VideoService {
 
     public String deleteVideo(long id) {
         if (videoRepo.existsById(id)) {
-            new File(projectPath + "/uploads/" + videoRepo.findById(id).get().getName()).delete();
             videoRepo.deleteById(id);
             return "Video deleted";
         }
