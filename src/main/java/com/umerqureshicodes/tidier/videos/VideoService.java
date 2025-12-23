@@ -2,27 +2,26 @@ package com.umerqureshicodes.tidier.videos;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.umerqureshicodes.tidier.Utilities.TwelveLabsResponse;
 import com.umerqureshicodes.tidier.Utilities.TwelveLabsTaskResponse;
 import com.umerqureshicodes.tidier.montages.Montage;
+import com.umerqureshicodes.tidier.s3.S3Service;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.file.DirectoryStream;
+import java.io.*;
+import java.net.URL;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Stream;
 
 @Service
 public class VideoService {
@@ -34,94 +33,112 @@ public class VideoService {
     @Value("${project.path}")
     private String projectPath;
     private final VideoRepo videoRepo;
+    private final S3Service s3Service;
 
     @Autowired
-    public VideoService(VideoRepo videoRepo) {
+    public VideoService(VideoRepo videoRepo, S3Service s3Service) {
         this.videoRepo = videoRepo;
+        this.s3Service = s3Service;
     }
 
-    public  void convertToMp4(String inputPath, String outputPath) {
-        // ffmpeg command
+    public File convertToMp4(MultipartFile multipartFile) throws IOException, InterruptedException {
+
+        // 1. Create temp input file (original format)
+        File inputTempFile = Files.createTempFile("upload-", "-" + multipartFile.getOriginalFilename()).toFile();
+        multipartFile.transferTo(inputTempFile);
+
+        // 2. Create temp output file (mp4)
+        File outputTempFile = Files.createTempFile("converted-", ".mp4").toFile();
+
+        // 3. FFmpeg command
         String[] command = {
                 "ffmpeg",
-                "-i", inputPath,   // input file
-                "-c:v", "libx264", // video codec
-                "-c:a", "aac",     // audio codec
-                "-strict", "experimental", // for AAC compatibility
-                outputPath
+                "-y", // overwrite if exists
+                "-i", inputTempFile.getAbsolutePath(),
+                "-c:v", "libx264",
+                "-c:a", "aac",
+                outputTempFile.getAbsolutePath()
         };
 
         ProcessBuilder processBuilder = new ProcessBuilder(command);
-        processBuilder.redirectErrorStream(true); // merge stderr with stdout
+        processBuilder.redirectErrorStream(true);
 
-        try {
-            Process process = processBuilder.start();
+        Process process = processBuilder.start();
 
-            // capture output (ffmpeg logs progress here)
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                  //  System.out.println(line); // print ffmpeg output
-                }
+        // 4. Consume FFmpeg output (important to avoid deadlocks)
+        try (var reader = new java.io.BufferedReader(
+                new java.io.InputStreamReader(process.getInputStream()))) {
+            while (reader.readLine() != null) {
+                // optionally log ffmpeg output
             }
-
-            int exitCode = process.waitFor();
-            if (exitCode == 0) {
-                System.out.println("Conversion completed successfully!");
-            } else {
-                System.err.println("Conversion failed. Exit code: " + exitCode);
-            }
-
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
         }
+
+        int exitCode = process.waitFor();
+
+        // 5. Cleanup input temp file
+        inputTempFile.delete();
+
+        if (exitCode != 0) {
+            outputTempFile.delete();
+            throw new RuntimeException("FFmpeg failed with exit code " + exitCode);
+        }
+
+        // 6. Return MP4 temp file (caller must delete after use)
+        return outputTempFile;
     }
 
-    public List<VideoResponseDTO> uploadToDirectory(List<MultipartFile> files) {
-        List<VideoResponseDTO> videoResponseDTOList = new ArrayList<>();
-        try {
-            // Save the files to the local file system
-            for(MultipartFile file : files) {
-                String filePath = projectPath+ "/uploads/" + file.getOriginalFilename();
-                String fileName = file.getOriginalFilename();
-                file.transferTo(new File(filePath));
-                if (!Objects.requireNonNull(file.getContentType()).equalsIgnoreCase("video/mp4")){ // if different video file so .mov
-                    int fileExtensionStart = file.getOriginalFilename().lastIndexOf(".");
-                    String convertedFileName = file.getOriginalFilename().substring(0, fileExtensionStart) + ".mp4";
-                    convertToMp4(filePath,projectPath+ "/uploads/" + convertedFileName );
-                    new File(filePath).delete();
-                    filePath =projectPath+ "/uploads/" + convertedFileName;
-                    fileName = convertedFileName;
+    public List<VideoResponseDTO> save(List<MultipartFile> files) {
+        List<VideoResponseDTO> responses = new ArrayList<>();
+
+        for (MultipartFile file : files) {
+            File tempFile = null;
+
+            try {
+                if (!"video/mp4".equalsIgnoreCase(file.getContentType())) {
+                    tempFile = convertToMp4(file);
+                } else {
+                    tempFile = Files.createTempFile("upload-", ".mp4").toFile();
+                    file.transferTo(tempFile); //after transferTo, the multipart is designed to no longer be used
                 }
-               /*
-                UPLOAD LATER, RIGHT NOW JUST IMPLEMENTING VIDEO LIBRARY COMPONENT
 
-               Video uploadedVid = uploadToTwelveLabsAndSave(filePath, fileName );
+                // Upload to TwelveLabs
+                Video uploadedVid = uploadToTwelveLabsAndSave(
+                        tempFile,
+                        file.getOriginalFilename()
+                );
 
-                */
-               // videoResponseDTOList.add(new VideoResponseDTO(uploadedVid.getName(),uploadedVid.getVideoId()));
+                // Upload to S3 USING FILE
+                s3Service.putObject(
+                        "tidier",
+                        "test/" + file.getOriginalFilename(),
+                        tempFile
+                );
 
-                // BOTTOM THREE LINES ARE TEMP, SAVE DOESNT HAPPEN HERE
+                responses.add(
+                        new VideoResponseDTO(
+                                uploadedVid.getName(),
+                                uploadedVid.getVideoId()
+                        )
+                );
 
-                String DUMMY_ID = "DUMMY ID: "+ UUID.randomUUID().toString().replace("-", "");
-                videoRepo.save(new Video(DUMMY_ID,fileName ));
-                videoResponseDTOList.add(new VideoResponseDTO(fileName ,DUMMY_ID));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            } finally {
+                if (tempFile != null && tempFile.exists()) {
+                    tempFile.delete();
+                }
             }
-            return videoResponseDTOList;
-        } catch (IOException e) {
-            e.printStackTrace(); // Or use a logger instead
-            System.out.println ("Failed to upload file: " + e.getMessage());
-            return null;
         }
+
+        return responses;
     }
 
-    public Video uploadToTwelveLabsAndSave(String path,String filename) {
+    public Video uploadToTwelveLabsAndSave(File file,String filename) {
 
         HttpResponse<String> response = Unirest.post("https://api.twelvelabs.io/v1.3/tasks")
                 .header("x-api-key", apiKey)
                 .field("index_id", indexId)
-                .field("video_file", new File(path) )
+                .field("video_file", file )
                 .asString();
 
         if(response.getStatus() == 200 || response.getStatus() == 201) {
@@ -146,7 +163,13 @@ public class VideoService {
     public List<VideoResponseDTO> getVideos() {
         List<VideoResponseDTO> videoResponseDTOList = new ArrayList<>();
         for (Video video : videoRepo.findAll()) {
-            videoResponseDTOList.add(new VideoResponseDTO(video.getName(),video.getVideoId()));
+            if (video.getId() >= 20) { // ONLY 20TH VIDEO AND ONWARDS HAVE AWS STORED VIDEO, REMOVE THIS LOGIC AFTER
+                String preSignedUrl = s3Service.generatePresignedGetUrl("tidier", "test/"+video.getName()).toString();
+                videoResponseDTOList.add(new VideoResponseDTO(video.getName(),video.getVideoId(),preSignedUrl));
+            }
+            else{
+                videoResponseDTOList.add(new VideoResponseDTO(video.getName(),video.getVideoId()));
+            }
         }
         return videoResponseDTOList;
     }
@@ -162,10 +185,16 @@ public class VideoService {
 
     public String deleteVideo(long id) {
         if (videoRepo.existsById(id)) {
-            new File(projectPath + "/uploads/" + videoRepo.findById(id).get().getName()).delete();
             videoRepo.deleteById(id);
             return "Video deleted";
         }
         return "Video not found";
+    }
+
+
+
+    public String getVideoUrl(String key) {
+        String FAKE_KEY = "test/london-castle.mp4";
+        return s3Service.generatePresignedGetUrl("tidier", FAKE_KEY ).toString();
     }
 }

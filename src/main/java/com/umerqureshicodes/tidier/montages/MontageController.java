@@ -2,6 +2,8 @@ package com.umerqureshicodes.tidier.montages;
 
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 public class MontageController {
 
@@ -20,5 +22,10 @@ public class MontageController {
     @DeleteMapping("/montages/{id}")
     public String deleteMontage(@PathVariable Long id) {
         return montageService.deleteMontage(id);
+    }
+
+    @GetMapping("montages")
+    public List<MontageResponseDTO> getUrl(){
+        return montageService.getMontages();
     }
 }

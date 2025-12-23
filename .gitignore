@@ -24,6 +24,7 @@ target/
 !**/src/test/**/target/
 uploads/
 trimmed-uploads/
+s3-downloads/
 videos.txt
 
 # === Java Build ===
