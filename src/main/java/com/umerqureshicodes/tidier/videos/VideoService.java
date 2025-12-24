@@ -189,10 +189,7 @@ public class VideoService {
         return "Video not found";
     }
 
-
-
     public String getVideoUrl(String key) {
-        String FAKE_KEY = "test/london-castle.mp4";
-        return s3Service.generatePresignedGetUrl("tidier", FAKE_KEY ).toString();
+        return s3Service.generatePresignedGetUrl("tidier", key ).toString();
     }
 }

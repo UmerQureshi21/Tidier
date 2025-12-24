@@ -181,8 +181,6 @@ public class MontageService {
 
     public int combineVideos(List<String> trimmedFiles, String outputFileName) {
         //notify("Combining videos...", null);
-
-
         String tempDir = System.getProperty("java.io.tmpdir");
         if(trimmedFiles == null) {
             return 1;
@@ -227,7 +225,7 @@ public class MontageService {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("❌ Error: " + e.getMessage());
+            System.out.println("Error: " + e.getMessage());
         }
         return exitCode;
     }
@@ -239,7 +237,8 @@ public class MontageService {
             List<VideoResponseDTO> videoResponseDTOs = new ArrayList<>();
             List<Video> videos = montage.getVideos();
             for (Video video : videos) {
-                videoResponseDTOs.add(new VideoResponseDTO(video.getName(),video.getVideoId()));
+                String videoPreviewUrl = videoService.getVideoUrl("test/" + video.getName());
+                videoResponseDTOs.add(new VideoResponseDTO(video.getName(),video.getVideoId(),videoPreviewUrl));
             }
             String preSignedUrl = s3Service.generatePresignedGetUrl("tidier","montages/"+montage.getName()+".mp4").toString();
             montageResponseDTOs.add(new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt(),preSignedUrl));
