@@ -9,8 +9,6 @@ interface FileDetailsProps {
 
 export default function FileDetails({
   name,
-  size,
-  type,
   videoSrc,
 }: FileDetailsProps) {
   const videoRef = React.useRef<HTMLVideoElement>(null);

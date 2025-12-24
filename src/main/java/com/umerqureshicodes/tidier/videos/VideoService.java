@@ -30,8 +30,6 @@ public class VideoService {
     private String apiKey;
     @Value("${twelvelabs.index.id}")
     private String indexId;
-    @Value("${project.path}")
-    private String projectPath;
     private final VideoRepo videoRepo;
     private final S3Service s3Service;
 

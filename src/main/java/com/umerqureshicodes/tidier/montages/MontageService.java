@@ -25,8 +25,6 @@ public class MontageService {
 
     @Value("${twelvelabs.api.key}")
     private String apiKey;
-    @Value("${project.path}")
-    private String projectPath;
     @Value("${backend.host}")
     private String backendHost;
     private final MontageRepo montageRepo;
@@ -135,7 +133,6 @@ public class MontageService {
                     System.out.println(videoUrl.toString());
                     File inputTempFile = downloadPresignedUrlToTempFile(videoUrl.toString());
                     String trimmedVideoName = interval.get("video") + "-trimmed-" + UUID.randomUUID().toString() + ".mp4";
-                    String outputPath = projectPath + "/trimmed-uploads/" + trimmedVideoName;
                     trimmedVideosToCombine.add(trimmedVideoName);
 
                     //Problem is that I'm pretty sure the local version ffmpeg creates the file, but for the cloud one i made the file before which didnt work
@@ -244,7 +241,7 @@ public class MontageService {
             for (Video video : videos) {
                 videoResponseDTOs.add(new VideoResponseDTO(video.getName(),video.getVideoId()));
             }
-            String preSignedUrl = s3Service.generatePresignedGetUrl("tidier","montages/"+montage.getName()).toString();
+            String preSignedUrl = s3Service.generatePresignedGetUrl("tidier","montages/"+montage.getName()+".mp4").toString();
             montageResponseDTOs.add(new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt(),preSignedUrl));
         }
         return montageResponseDTOs;
