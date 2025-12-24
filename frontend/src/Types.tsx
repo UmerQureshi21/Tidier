@@ -15,5 +15,5 @@ export type MontageResponseDTO = {
   name: string;
   preSignedUrl: string;
   prompt: string;
-  videoResponseDTOs: VideoRequestDTO[];
+  videos: VideoRequestDTO[];
 };

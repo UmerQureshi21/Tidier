@@ -18,7 +18,6 @@ public class VideoController {
     @GetMapping("/videos")
     @Cacheable(value = "videos", cacheManager = "cacheManager") // Looks under key named videos
     public List<VideoResponseDTO> getAllVideos() {
-        System.out.println("FETCHING VIDEOS FROM SERVICE"); // This should only print once per 10 mins
         return videoService.getVideos();
     }
 

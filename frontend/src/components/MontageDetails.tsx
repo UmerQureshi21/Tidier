@@ -17,7 +17,7 @@ export default function MontageDetails({
   return (
     <div
       className={`
-      bg-[#000] rounded-xl shadow-md cursor-pointer
+      bg-[#222222] rounded-xl shadow-md cursor-pointer
       transition-all duration-500 ease-in-out
       hover:shadow-xl border-2
       flex flex-col h-[full]
@@ -28,13 +28,16 @@ export default function MontageDetails({
       }
     `}
     >
-      <div className="p-4 md:p-6 bg-[#000] flex flex-col h-full rounded-xl">
+      <div className="p-4 md:p-6 bg-[#222222] flex flex-col h-full rounded-xl">
         <div className="flex flex-col gap-4 flex-1">
           <div className="flex-1">
             <h3 className="text-xl md:text-2xl font-bold text-[#fff] mb-2">
               {title}
             </h3>
-            <p className="text-sm md:text-base text-[#925CFE] mb-4">{topic}</p>
+            <p className="text-sm md:text-base text-[#925CFE] mb-4">
+              <span className="font-bold">Topic: </span>
+              {topic}
+            </p>
 
             {/* Video Section */}
             <div
@@ -66,10 +69,11 @@ export default function MontageDetails({
             <div className="border-t-2 border-[#fff] border-opacity-20 pt-4">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {photos?.map((photo, idx) => (
-                  <img
+                  <video
                     key={idx}
                     src={photo}
-                    alt={`Photo ${idx + 1}`}
+                    autoPlay
+                    muted
                     className="w-full h-32 md:h-40 object-cover rounded-lg shadow-md hover:shadow-lg transition-shadow"
                   />
                 ))}

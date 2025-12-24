@@ -46,14 +46,17 @@ export default function Montages() {
   }, []);
 
   return (
-    <div className="w-full bg-black flex justify-center">
+    <div className="w-full bg-black flex justify-center pb-[100px]">
       <div className="bg-[rgb(20,20,20)] w-[95%] min-h-[800px] overflow-y-scroll rounded-[10px] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
         {montages?.map((montage, index) => (
           <MontageDetails
             key={`montage ${index}`}
             title={montage.name}
             topic={montage.prompt}
-            photos={[]}
+            photos={
+                montage.videos.map(
+              (video, vi) => video.previewUrl
+            )}
             videoSrc={montage.preSignedUrl}
           />
         ))}
