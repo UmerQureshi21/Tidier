@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import FileDetails from "./FileDetails";
+import FileDetails from "./VideoDetails";
 import type { VideoRequestDTO, MontageRequestDTO } from "../Types";
 import { useNavigate } from "react-router";
 
