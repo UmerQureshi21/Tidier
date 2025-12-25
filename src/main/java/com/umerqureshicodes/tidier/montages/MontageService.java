@@ -25,8 +25,6 @@ public class MontageService {
 
     @Value("${twelvelabs.api.key}")
     private String apiKey;
-    @Value("${project.path}")
-    private String projectPath;
     @Value("${backend.host}")
     private String backendHost;
     private final MontageRepo montageRepo;
@@ -40,18 +38,17 @@ public class MontageService {
         this.messagingTemplate = messagingTemplate;
     }
 
-//    private void notify(String message, String montagePath) {
-//        // Push message to all clients subscribed to /topic/montage-progress
-//        messagingTemplate.convertAndSend("/topic/montage-progress", new WebSocketServiceMessage(message, montagePath));
-//    }
-
+    private void notify(String message, String montagePath) {
+        // Push message to all clients subscribed to /topic/montage-progress
+        messagingTemplate.convertAndSend("/topic/montage-progress", new WebSocketServiceMessage(message, montagePath));
+    }
 
     public MontageResponseDTO convertToDTO(Montage montage, String montageUrl) {
         List<VideoResponseDTO> videoResponseDTOs = new ArrayList<>();
         for (Video video: montage.getVideos()){
             videoResponseDTOs.add(new VideoResponseDTO(video.getVideoId(),video.getName()));
         }
-        return new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt(),null);
+        return new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt(),montageUrl);
     }
 
     public MontageResponseDTO createMontage(MontageRequestDTO montageRequestDTO) {
@@ -69,9 +66,10 @@ public class MontageService {
            }
            // this can surely be put into one for loop
            montage.setVideos(videosInMontage);
-           //notify(montageRequestDTO.name() +" created!",  "/montages/"+montageRequestDTO.name());
+           String preSignedUrl = s3Service.generatePresignedGetUrl("tidier","montages/"+montageRequestDTO.name()+".mp4").toString() ;
+           notify(montageRequestDTO.name() +" created!", preSignedUrl);
            // add topic to send montage path to tsx component
-           String preSignedUrl = s3Service.generatePresignedGetUrl("bucket","montages/"+montageRequestDTO.name()+".mp4").toString() ;
+           System.out.println(montageRequestDTO.name() +" created!");
            return convertToDTO(montageRepo.save(montage),preSignedUrl);
        }
        else{
@@ -102,7 +100,7 @@ public class MontageService {
 
             if (response.getStatus() == 200 || response.getStatus() == 201) {
                 timestamps.add(response.getBody().data());
-                //notify("Successfully extracted " + montageRequestDTO.prompt() + " from " + v.getName(), null);
+                notify("Successfully extracted " + montageRequestDTO.prompt() + " from " + v.getName(), null);
             }
 
         }
@@ -135,7 +133,6 @@ public class MontageService {
                     System.out.println(videoUrl.toString());
                     File inputTempFile = downloadPresignedUrlToTempFile(videoUrl.toString());
                     String trimmedVideoName = interval.get("video") + "-trimmed-" + UUID.randomUUID().toString() + ".mp4";
-                    String outputPath = projectPath + "/trimmed-uploads/" + trimmedVideoName;
                     trimmedVideosToCombine.add(trimmedVideoName);
 
                     //Problem is that I'm pretty sure the local version ffmpeg creates the file, but for the cloud one i made the file before which didnt work
@@ -178,14 +175,12 @@ public class MontageService {
             }
             i++;
         }
-        //notify("Finished trimming videos...", null);
+        notify("Finished trimming videos...", null);
         return trimmedVideosToCombine;
     }
 
     public int combineVideos(List<String> trimmedFiles, String outputFileName) {
-        //notify("Combining videos...", null);
-
-
+        notify("Combining videos...", null);
         String tempDir = System.getProperty("java.io.tmpdir");
         if(trimmedFiles == null) {
             return 1;
@@ -230,7 +225,7 @@ public class MontageService {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("❌ Error: " + e.getMessage());
+            System.out.println("Error: " + e.getMessage());
         }
         return exitCode;
     }
@@ -242,9 +237,10 @@ public class MontageService {
             List<VideoResponseDTO> videoResponseDTOs = new ArrayList<>();
             List<Video> videos = montage.getVideos();
             for (Video video : videos) {
-                videoResponseDTOs.add(new VideoResponseDTO(video.getName(),video.getVideoId()));
+                String videoPreviewUrl = videoService.getVideoUrl("test/" + video.getName());
+                videoResponseDTOs.add(new VideoResponseDTO(video.getName(),video.getVideoId(),videoPreviewUrl));
             }
-            String preSignedUrl = s3Service.generatePresignedGetUrl("tidier","montages/"+montage.getName()).toString();
+            String preSignedUrl = s3Service.generatePresignedGetUrl("tidier","montages/"+montage.getName()+".mp4").toString();
             montageResponseDTOs.add(new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt(),preSignedUrl));
         }
         return montageResponseDTOs;

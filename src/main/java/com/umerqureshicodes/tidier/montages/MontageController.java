@@ -1,5 +1,6 @@
 package com.umerqureshicodes.tidier.montages;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,7 +25,9 @@ public class MontageController {
         return montageService.deleteMontage(id);
     }
 
+    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @GetMapping("montages")
+    @Cacheable(value = "montages", cacheManager = "cacheManager") // Looks under key named montages
     public List<MontageResponseDTO> getUrl(){
         return montageService.getMontages();
     }
