@@ -2,6 +2,7 @@ package com.umerqureshicodes.tidier.videos;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsService;
 import com.umerqureshicodes.tidier.Utilities.TwelveLabsTaskResponse;
 import com.umerqureshicodes.tidier.montages.Montage;
 import com.umerqureshicodes.tidier.s3.S3Service;
@@ -26,17 +27,14 @@ import java.util.*;
 @Service
 public class VideoService {
 
-    @Value("${twelvelabs.api.key}")
-    private String apiKey;
-    @Value("${twelvelabs.index.id}")
-    private String indexId;
     private final VideoRepo videoRepo;
     private final S3Service s3Service;
-
+    private final TwelveLabsService twelveLabsService;
     @Autowired
-    public VideoService(VideoRepo videoRepo, S3Service s3Service) {
+    public VideoService(VideoRepo videoRepo, S3Service s3Service, TwelveLabsService twelveLabsService) {
         this.videoRepo = videoRepo;
         this.s3Service = s3Service;
+        this.twelveLabsService = twelveLabsService;
     }
 
     public File convertToMp4(MultipartFile multipartFile) throws IOException, InterruptedException {
@@ -133,28 +131,15 @@ public class VideoService {
 
     public Video uploadToTwelveLabsAndSave(File file,String filename) {
 
-        HttpResponse<String> response = Unirest.post("https://api.twelvelabs.io/v1.3/tasks")
-                .header("x-api-key", apiKey)
-                .field("index_id", indexId)
-                .field("video_file", file )
-                .asString();
+        TwelveLabsTaskResponse videoData = twelveLabsService.indexVideo(file);
 
-        if(response.getStatus() == 200 || response.getStatus() == 201) {
-            try{
-                ObjectMapper mapper = new ObjectMapper();
-                TwelveLabsTaskResponse twelvelabsTaskResponse = mapper.readValue(response.getBody(), TwelveLabsTaskResponse.class);
-                Video video = new Video(twelvelabsTaskResponse.videoId(),filename);
-                videoRepo.save(video);
-                return video;
-            }catch(Exception e){
-                e.printStackTrace();
-                System.out.println("Failed to upload file: " + e.getMessage());
-                return null;
-            }
+        if (videoData == null) {
+            return null;
         }
         else{
-            System.out.println("API error: " + response.getStatus());
-            return null;
+            Video video = new Video(videoData.videoId() ,filename);
+            videoRepo.save(video);
+            return video;
         }
     }
 

@@ -1,6 +1,7 @@
 package com.umerqureshicodes.tidier.montages;
 
 
+import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsService;
 import com.umerqureshicodes.tidier.Utilities.TwelveLabsTimeStampResponse;
 import com.umerqureshicodes.tidier.Utilities.WebSocketServiceMessage;
 import com.umerqureshicodes.tidier.s3.S3Service;
@@ -23,18 +24,18 @@ import java.util.UUID;
 @Service
 public class MontageService {
 
-    @Value("${twelvelabs.api.key}")
-    private String apiKey;
     @Value("${backend.host}")
     private String backendHost;
     private final MontageRepo montageRepo;
     private final VideoService videoService;
     private final S3Service s3Service;
+    private final TwelveLabsService twelveLabsService;
     private final SimpMessagingTemplate messagingTemplate;
-    public MontageService(MontageRepo montageRepo, VideoService videoService, S3Service s3Service, SimpMessagingTemplate messagingTemplate) {
+    public MontageService(MontageRepo montageRepo, VideoService videoService, S3Service s3Service, TwelveLabsService twelveLabsService, SimpMessagingTemplate messagingTemplate) {
         this.montageRepo = montageRepo;
         this.videoService = videoService;
         this.s3Service = s3Service;
+        this.twelveLabsService = twelveLabsService;
         this.messagingTemplate = messagingTemplate;
     }
 
@@ -82,27 +83,12 @@ public class MontageService {
     public List<String> analyzeVideoWithPrompt(MontageRequestDTO montageRequestDTO) {
 
         List<String> timestamps = new ArrayList<>();
-
         for(VideoRequestDTO v : montageRequestDTO.videoRequestDTOs()) {
-            String requestBody = "{"
-                    + "\"video_id\": \"" + v.getVideoId() + "\","
-                    + "\"prompt\": \"" + montageRequestDTO.sentence() + "\","
-                    + "\"temperature\": 0.2,"
-                    + "\"stream\": false"
-                    + "}";
-            // montageRequestDTO.sentence() is gonna be "Give me all the timestamps of ___ in this format: 00:00-00:04, 00:04-00:08, 00:11-00:13
-            HttpResponse<TwelveLabsTimeStampResponse> response =
-                    Unirest.post("https://api.twelvelabs.io/v1.3/analyze")
-                            .header("x-api-key", apiKey)
-                            .header("Content-Type", "application/json")
-                            .body(requestBody)
-                            .asObject(TwelveLabsTimeStampResponse.class);
-
-            if (response.getStatus() == 200 || response.getStatus() == 201) {
-                timestamps.add(response.getBody().data());
+            TwelveLabsTimeStampResponse response = twelveLabsService.getIntervalsOfTopic(v.getVideoId(), montageRequestDTO.sentence());
+            if (response != null) {
+                timestamps.add(response.data());
                 notify("Successfully extracted " + montageRequestDTO.prompt() + " from " + v.getName(), null);
             }
-
         }
         return timestamps;
     }
