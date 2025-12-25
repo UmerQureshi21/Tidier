@@ -13,6 +13,7 @@ import VideoLibraryPage from "./pages/VideoLibraryPage";
 import DashBoardPage from "./pages/DashBoardPage";
 import CreateMontagePage from "./pages/CreateMontagePage";
 import NotFoundPage from "./pages/NotFoundPage";
+import ViewCreatedMontage from "./pages/ViewCreatedMontagePage";
 
 export default function App() {
   const router = createBrowserRouter(
@@ -23,8 +24,9 @@ export default function App() {
 
         <Route path="/app" element={<RootLayout />}>
           <Route index path="dashboard" element={<DashBoardPage />} />
-          <Route path="upload" element={<CreateMontagePage />} />
+          <Route path="create" element={<CreateMontagePage />} />
           <Route path="montages" element={<MontagePage />} />
+          <Route path="view-created" element={<ViewCreatedMontage/>} />
           <Route path="videos" element={<VideoLibraryPage />} />
         </Route>
 

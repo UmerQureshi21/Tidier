@@ -38,18 +38,17 @@ public class MontageService {
         this.messagingTemplate = messagingTemplate;
     }
 
-//    private void notify(String message, String montagePath) {
-//        // Push message to all clients subscribed to /topic/montage-progress
-//        messagingTemplate.convertAndSend("/topic/montage-progress", new WebSocketServiceMessage(message, montagePath));
-//    }
-
+    private void notify(String message, String montagePath) {
+        // Push message to all clients subscribed to /topic/montage-progress
+        messagingTemplate.convertAndSend("/topic/montage-progress", new WebSocketServiceMessage(message, montagePath));
+    }
 
     public MontageResponseDTO convertToDTO(Montage montage, String montageUrl) {
         List<VideoResponseDTO> videoResponseDTOs = new ArrayList<>();
         for (Video video: montage.getVideos()){
             videoResponseDTOs.add(new VideoResponseDTO(video.getVideoId(),video.getName()));
         }
-        return new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt(),null);
+        return new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt(),montageUrl);
     }
 
     public MontageResponseDTO createMontage(MontageRequestDTO montageRequestDTO) {
@@ -67,9 +66,10 @@ public class MontageService {
            }
            // this can surely be put into one for loop
            montage.setVideos(videosInMontage);
-           //notify(montageRequestDTO.name() +" created!",  "/montages/"+montageRequestDTO.name());
+           String preSignedUrl = s3Service.generatePresignedGetUrl("tidier","montages/"+montageRequestDTO.name()+".mp4").toString() ;
+           notify(montageRequestDTO.name() +" created!", preSignedUrl);
            // add topic to send montage path to tsx component
-           String preSignedUrl = s3Service.generatePresignedGetUrl("bucket","montages/"+montageRequestDTO.name()+".mp4").toString() ;
+           System.out.println(montageRequestDTO.name() +" created!");
            return convertToDTO(montageRepo.save(montage),preSignedUrl);
        }
        else{
@@ -100,7 +100,7 @@ public class MontageService {
 
             if (response.getStatus() == 200 || response.getStatus() == 201) {
                 timestamps.add(response.getBody().data());
-                //notify("Successfully extracted " + montageRequestDTO.prompt() + " from " + v.getName(), null);
+                notify("Successfully extracted " + montageRequestDTO.prompt() + " from " + v.getName(), null);
             }
 
         }
@@ -175,12 +175,12 @@ public class MontageService {
             }
             i++;
         }
-        //notify("Finished trimming videos...", null);
+        notify("Finished trimming videos...", null);
         return trimmedVideosToCombine;
     }
 
     public int combineVideos(List<String> trimmedFiles, String outputFileName) {
-        //notify("Combining videos...", null);
+        notify("Combining videos...", null);
         String tempDir = System.getProperty("java.io.tmpdir");
         if(trimmedFiles == null) {
             return 1;
