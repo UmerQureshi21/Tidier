@@ -127,6 +127,8 @@ export default function UploadCopy() {
         </div>
       ) : (
         <div className="w-full bg-black flex flex-col items-center gap-[50px]">
+
+          {/* Desktop Layout */}
           <div className="hidden md:flex text-white bg-[rgb(20,20,20)] pt-[50px] poppins w-[65%] rounded-[20px] flex-col items-center justify-center pb-[50px]">
             <div className="flex flex-col items-center w-full gap-[20px]">
               <div className="flex w-[60%] justify-between items-center gap-[20px]">
