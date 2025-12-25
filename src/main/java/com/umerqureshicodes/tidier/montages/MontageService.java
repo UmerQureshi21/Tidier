@@ -176,6 +176,7 @@ public class MontageService {
             i++;
         }
         notify("Finished trimming videos...", null);
+
         return trimmedVideosToCombine;
     }
 

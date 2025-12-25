@@ -97,6 +97,7 @@ export default function UploadCopy() {
     const selectedVideos = prevFiles.filter((_, i) => newClicks[i]);
     console.log("Selected videos:", selectedVideos);
   };
+
   useEffect(() => {
     getAllFiles();
     setClicks(new Array(prevFiles.length).fill(false));
@@ -125,36 +126,97 @@ export default function UploadCopy() {
           <MontageProgressWebSocket />
         </div>
       ) : (
-        <div className="w-full bg-black flex flex-col items-center">
-          <div className="text-white poppins w-[90%] flex flex-col items-center justify-center pb-[50px]">
-            <div className="flex flex-col items-center w-full ">
-              <div className="flex w-full justify-between items-center">
-                <h1 className="w-[20%] text-[25px]">Topic: </h1>
+        <div className="w-full bg-black flex flex-col items-center gap-[50px]">
+          <div className="hidden md:flex text-white bg-[rgb(20,20,20)] pt-[50px] poppins w-[65%] rounded-[20px] flex-col items-center justify-center pb-[50px]">
+            <div className="flex flex-col items-center w-full gap-[20px]">
+              <div className="flex w-[60%] justify-between items-center gap-[20px]">
+                <h1 className="text-[35px] text-[#6600FF] whitespace-nowrap">Topic:</h1>
                 <input
                   type="text"
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     setSentence(e.target.value);
-                  }} // react onChange is same as vanilla input event listener
+                  }}
                   autoFocus
-                  className="w-[77%] mt-[10px] outline-none border-b-[1px] border-b-[#6600FF] pb-[3px]"
+                  className="flex-1 outline-none border-b-[1px] border-b-[#6600FF] pb-[3px] bg-transparent"
                   style={{ caretColor: "#6600FF" }}
                 />
               </div>
-              <div className="flex w-full justify-between items-center">
-                <h1 className="w-[20%] text-[25px]">Title: </h1>
+              <div className="flex w-[60%] justify-between items-center gap-[20px]">
+                <h1 className="text-[35px] text-[#6600FF] whitespace-nowrap">Title:</h1>
                 <input
                   type="text"
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     setTitle(e.target.value);
-                  }} // react onChange is same as vanilla input event listener
+                  }}
                   autoFocus
-                  className="w-[77%] mt-[10px] outline-none border-b-[1px] border-b-[#6600FF] pb-[3px]"
+                  className="flex-1 outline-none border-b-[1px] border-b-[#6600FF] pb-[3px] bg-transparent"
                   style={{ caretColor: "#6600FF" }}
                 />
               </div>
             </div>
             <button
-              className="hover:cursor-pointer mt-[15px] hover:shadow-[0_0_10px_white] shadow-[0_0_0_white] transition duration-150 ease relative w-[80%] bg-[#925CFE] px-[30px] py-[15px] rounded-[20px] poppins-font text-white text-[20px]"
+              className={`mt-[25px] px-[30px] py-[15px] rounded-[20px] poppins-font text-white text-[20px] font-medium transition duration-150 ease w-[65%] ${
+                sentence === "" ||
+                title === "" ||
+                !clicks.some((selected) => selected)
+                  ? "hover:cursor-not-allowed"
+                  : "hover:cursor-pointer hover:shadow-[0_0_10px_white] shadow-[0_0_0_white]"
+              }`}
+              onClick={handleSubmit}
+              disabled={
+                sentence === "" ||
+                title === "" ||
+                !clicks.some((selected) => selected)
+              }
+              style={{
+                backgroundColor:
+                  sentence === "" ||
+                  title === "" ||
+                  !clicks.some((selected) => selected)
+                    ? "#222222"
+                    : "#925CFE",
+              }}
+            >
+              Generate Montage!
+            </button>
+          </div>
+
+          {/* Mobile Layout */}
+          <div className="flex md:hidden text-white bg-[rgb(20,20,20)] pt-[30px] poppins w-[90%] rounded-[20px] flex-col items-center justify-center pb-[30px] gap-[20px]">
+            <div className="flex flex-col w-full items-center gap-[20px] px-[20px]">
+              <div className="flex flex-col w-full gap-[8px]">
+                <h1 className="text-[24px] text-[#6600FF]">Topic:</h1>
+                <input
+                  type="text"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setSentence(e.target.value);
+                  }}
+                  autoFocus
+                  className="outline-none border-b-[1px] border-b-[#6600FF] pb-[8px] bg-transparent text-white"
+                  style={{ caretColor: "#6600FF" }}
+                />
+              </div>
+              <div className="flex flex-col w-full gap-[8px]">
+                <h1 className="text-[24px] text-[#6600FF]">Title:</h1>
+                <input
+                  type="text"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setTitle(e.target.value);
+                  }}
+                  autoFocus
+                  className="outline-none border-b-[1px] border-b-[#6600FF] pb-[8px] bg-transparent text-white"
+                  style={{ caretColor: "#6600FF" }}
+                />
+              </div>
+            </div>
+            <button
+              className={`w-[80%] px-[30px] py-[15px] rounded-[20px] poppins-font text-white text-[18px] font-medium transition duration-150 ease ${
+                sentence === "" ||
+                title === "" ||
+                !clicks.some((selected) => selected)
+                  ? "hover:cursor-not-allowed"
+                  : "hover:cursor-pointer hover:shadow-[0_0_10px_white] shadow-[0_0_0_white]"
+              }`}
               onClick={handleSubmit}
               disabled={
                 sentence === "" ||
