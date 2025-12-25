@@ -30,8 +30,6 @@ public class VideoService {
     private String apiKey;
     @Value("${twelvelabs.index.id}")
     private String indexId;
-    @Value("${project.path}")
-    private String projectPath;
     private final VideoRepo videoRepo;
     private final S3Service s3Service;
 
@@ -191,10 +189,7 @@ public class VideoService {
         return "Video not found";
     }
 
-
-
     public String getVideoUrl(String key) {
-        String FAKE_KEY = "test/london-castle.mp4";
-        return s3Service.generatePresignedGetUrl("tidier", FAKE_KEY ).toString();
+        return s3Service.generatePresignedGetUrl("tidier", key ).toString();
     }
 }

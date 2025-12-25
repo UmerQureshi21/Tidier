@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import * as StompJs from "@stomp/stompjs";
 import { useNavigate } from "react-router";
 
+
+
 export default function MontageProgressWebSocket() {
   const backendURL = import.meta.env.VITE_BACKEND_URL;
   let navigate = useNavigate();
@@ -23,7 +25,7 @@ export default function MontageProgressWebSocket() {
       reconnectDelay: 2000,
       debug: (str) => console.log(str),
       onConnect: (frame) => {
-        console.log("Connected: " + frame);
+        console.log("We have connected to this frame: " + frame);
 
         client.subscribe("/topic/montage-progress", (message) => {
           const body = JSON.parse(message.body);
@@ -32,6 +34,7 @@ export default function MontageProgressWebSocket() {
           if (body.montagePath) {
             clientRef.current?.deactivate();
             setMontagePath(body.montagePath);
+            console.log("Montage path: " +body.montagePath)
             setIsPlaying(false); // reset for retry loop
           }
         });
@@ -119,7 +122,7 @@ export default function MontageProgressWebSocket() {
         </div>
         <button
           onClick={() => {
-            navigate("/");
+            navigate("/app/create");
           }}
           className="hover:cursor-pointer mt-[15px] hover:shadow-[0_0_10px_white] shadow-[0_0_0_white] transition duration-150 ease relative w-[80%] bg-[#925CFE] px-[30px] py-[15px] rounded-[20px] poppins-font text-white text-[20px]"
         >

@@ -23,7 +23,7 @@ export default function NotFoundPage() {
             Oops! Page Not Found
           </h2>
           <p className="text-gray-400 text-lg md:text-xl">
-            Looks like this montage got lost in the footage...
+            {/* Looks like this montage got lost in the footage... */}
           </p>
         </div>
 
