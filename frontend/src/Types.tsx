@@ -6,9 +6,9 @@ export type VideoRequestDTO = {
 
 export type MontageRequestDTO = {
   name: string;
+  videoRequestDTOs: VideoRequestDTO[];
   prompt: string;
   sentence: string; //the senetence that tells twelvelabs how to format, we dont wanna store this in DB, only prompt
-  videoRequestDTOs: VideoRequestDTO[];
 };
 
 export type MontageResponseDTO = {

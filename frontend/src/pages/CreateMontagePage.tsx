@@ -1,9 +1,9 @@
-import Upload from "../components/Upload";
+import UploadCopy from "../components/Create";
 
 export default function CreateMontagePage() {
   return (
     <div>
-      <Upload />
+      <UploadCopy/>
     </div>
   );
 }

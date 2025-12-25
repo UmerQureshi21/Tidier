@@ -67,14 +67,16 @@ export default function MontageDetails({
             `}
           >
             <div className="border-t-2 border-[#fff] border-opacity-20 pt-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3"
+              >
                 {photos?.map((photo, idx) => (
                   <video
                     key={idx}
                     src={photo}
                     autoPlay
                     muted
-                    className="w-full h-32 md:h-40 object-cover rounded-lg shadow-md hover:shadow-lg transition-shadow"
+                    controls
+                    className="w-full h-32 md:h-40 overflow-x-scroll object-cover rounded-lg shadow-md hover:shadow-lg transition-shadow"
                   />
                 ))}
               </div>
