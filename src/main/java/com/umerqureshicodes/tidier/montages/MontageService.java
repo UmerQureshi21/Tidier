@@ -1,13 +1,12 @@
 package com.umerqureshicodes.tidier.montages;
 
 
+import com.umerqureshicodes.tidier.FFmpeg.FFmpegService;
 import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsService;
-import com.umerqureshicodes.tidier.Utilities.TwelveLabsTimeStampResponse;
-import com.umerqureshicodes.tidier.Utilities.WebSocketServiceMessage;
+import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsTimeStampResponse;
+import com.umerqureshicodes.tidier.WebSocket.WebSocketServiceMessage;
 import com.umerqureshicodes.tidier.s3.S3Service;
 import com.umerqureshicodes.tidier.videos.*;
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -24,6 +23,7 @@ import java.util.UUID;
 @Service
 public class MontageService {
 
+    private final FFmpegService fFmpegService;
     @Value("${backend.host}")
     private String backendHost;
     private final MontageRepo montageRepo;
@@ -31,12 +31,13 @@ public class MontageService {
     private final S3Service s3Service;
     private final TwelveLabsService twelveLabsService;
     private final SimpMessagingTemplate messagingTemplate;
-    public MontageService(MontageRepo montageRepo, VideoService videoService, S3Service s3Service, TwelveLabsService twelveLabsService, SimpMessagingTemplate messagingTemplate) {
+    public MontageService(MontageRepo montageRepo, VideoService videoService, S3Service s3Service, TwelveLabsService twelveLabsService, SimpMessagingTemplate messagingTemplate, FFmpegService fFmpegService) {
         this.montageRepo = montageRepo;
         this.videoService = videoService;
         this.s3Service = s3Service;
         this.twelveLabsService = twelveLabsService;
         this.messagingTemplate = messagingTemplate;
+        this.fFmpegService = fFmpegService;
     }
 
     private void notify(String message, String montagePath) {
@@ -81,7 +82,6 @@ public class MontageService {
     }
     //https://docs.twelvelabs.io/v1.3/api-reference/analyze-videos/analyze
     public List<String> analyzeVideoWithPrompt(MontageRequestDTO montageRequestDTO) {
-
         List<String> timestamps = new ArrayList<>();
         for(VideoRequestDTO v : montageRequestDTO.videoRequestDTOs()) {
             TwelveLabsTimeStampResponse response = twelveLabsService.getIntervalsOfTopic(v.getVideoId(), montageRequestDTO.sentence());
@@ -96,8 +96,6 @@ public class MontageService {
     public List<String> trimVideos(List<String> timeStamps, List<VideoRequestDTO> videoRequestDTOs) {
         List<HashMap<String,String>> intervals = new ArrayList<>();
         List<String> trimmedVideosToCombine = new ArrayList<>();
-        int emptyTimeStampCount = 0;
-
         //timestamps in format of [[00:00-00:04, 00:04-00:08, 00:11-00:13],[00:01-00:03, 00:10-00:12]]
         for (int i = 0; i < timeStamps.size(); i++) {
             for(String timeStamp : timeStamps.get(i).split(", ")) {
@@ -120,34 +118,9 @@ public class MontageService {
                     File inputTempFile = downloadPresignedUrlToTempFile(videoUrl.toString());
                     String trimmedVideoName = interval.get("video") + "-trimmed-" + UUID.randomUUID().toString() + ".mp4";
                     trimmedVideosToCombine.add(trimmedVideoName);
-
                     //Problem is that I'm pretty sure the local version ffmpeg creates the file, but for the cloud one i made the file before which didnt work
                     Path tempPath = Paths.get(System.getProperty("java.io.tmpdir"), trimmedVideoName);
-
-                    ProcessBuilder pb = new ProcessBuilder(
-                            "ffmpeg",
-                            "-y", // overwrite if I need too
-                            "-i", inputTempFile.getAbsolutePath(),
-                            "-ss", interval.get("start"),
-                            "-to", interval.get("end"),
-                            "-c:v", "libx264",
-                            "-crf", "23",
-                            "-preset", "fast",
-                            "-c:a", "aac",
-                            "-b:a", "192k",
-                            tempPath.toString()
-                    );
-
-                    pb.redirectErrorStream(true); // merge stderr into stdout
-                    Process process = pb.start();
-
-                    // Capture output (optional, for debugging)
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        System.out.println(line);
-                    }
-                    int exitCode = process.waitFor();
+                    int exitCode = fFmpegService.trimVideo( inputTempFile.getAbsolutePath(), tempPath.toString(),interval.get("start"),interval.get("end"));
                     System.out.println("FFmpeg finished with exit code " + exitCode);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -157,12 +130,10 @@ public class MontageService {
             }
             else{
                 System.out.println("No time stamp found in" + interval.get("video"));
-                emptyTimeStampCount++;
             }
-            i++;
+            i = i + 1;
         }
         notify("Finished trimming videos...", null);
-
         return trimmedVideosToCombine;
     }
 
@@ -172,10 +143,8 @@ public class MontageService {
         if(trimmedFiles == null) {
             return 1;
         }
-
         int exitCode = 100;
         try {
-            // 1. Create text file to list trimmed video paths and output file to place montage in
             File concatFile = Files.createTempFile("videos-", ".txt").toFile();
             Path tempPath = Paths.get(tempDir ,outputFileName+".mp4");
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(concatFile))) {
@@ -183,25 +152,7 @@ public class MontageService {
                     writer.write("file '"+tempDir + file + "'\n");
                 }
             }
-            // 2. Run ffmpeg with re-encoding for compatibility with mac's finder
-            ProcessBuilder pb = new ProcessBuilder(
-                    "ffmpeg","-y", "-f", "concat", "-safe", "0",
-                    "-i", concatFile.getAbsolutePath(),
-                    "-c:v", "libx264", "-crf", "23", "-preset", "veryfast",
-                    "-c:a", "aac",
-                    tempPath.toString()
-            );
-
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-            // Log output in case of errors
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    System.out.println(line);
-                }
-            }
-            exitCode = process.waitFor();
+            exitCode = fFmpegService.combineVideo(concatFile.getAbsolutePath(),tempPath.toString());
             if (exitCode == 0) {
                 for (String file : trimmedFiles) {
                     Files.deleteIfExists(Paths.get(file));

@@ -1,4 +1,4 @@
-package com.umerqureshicodes.tidier.Config;
+package com.umerqureshicodes.tidier.WebSocket;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
