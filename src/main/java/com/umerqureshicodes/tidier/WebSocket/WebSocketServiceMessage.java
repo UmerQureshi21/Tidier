@@ -1,4 +1,4 @@
-package com.umerqureshicodes.tidier.Utilities;
+package com.umerqureshicodes.tidier.WebSocket;
 
 public class WebSocketServiceMessage {
 

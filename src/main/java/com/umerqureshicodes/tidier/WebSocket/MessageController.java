@@ -1,4 +1,4 @@
-package com.umerqureshicodes.tidier.Utilities;
+package com.umerqureshicodes.tidier.WebSocket;
 
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Controller;
@@ -16,7 +16,7 @@ public class MessageController {
      * In my case, I already know the progress inside the server (during trimming/combining videos).
      * Instead, I can directly push updates to the topic using SimpMessagingTemplate from your MontageService.
      */
-    public WebSocketServiceMessage  greeting(StompMessage  message) throws Exception {
+    public WebSocketServiceMessage greeting(StompMessage message) throws Exception {
         Thread.sleep(1000); // simulated delay
         return new WebSocketServiceMessage("Hello, " + HtmlUtils.htmlEscape(message.getName()) + "!",null);
     }

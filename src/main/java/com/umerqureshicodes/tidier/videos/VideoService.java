@@ -1,26 +1,17 @@
 package com.umerqureshicodes.tidier.videos;
 
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.umerqureshicodes.tidier.FFmpeg.FFmpegService;
 import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsService;
-import com.umerqureshicodes.tidier.Utilities.TwelveLabsTaskResponse;
+import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsTaskResponse;
 import com.umerqureshicodes.tidier.montages.Montage;
 import com.umerqureshicodes.tidier.s3.S3Service;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.*;
-import java.net.URL;
 import java.nio.file.Files;
 import java.util.*;
 
@@ -30,56 +21,30 @@ public class VideoService {
     private final VideoRepo videoRepo;
     private final S3Service s3Service;
     private final TwelveLabsService twelveLabsService;
+    private final FFmpegService ffmpegService;
     @Autowired
-    public VideoService(VideoRepo videoRepo, S3Service s3Service, TwelveLabsService twelveLabsService) {
+    public VideoService(VideoRepo videoRepo, S3Service s3Service, TwelveLabsService twelveLabsService, FFmpegService ffmpegService) {
         this.videoRepo = videoRepo;
         this.s3Service = s3Service;
         this.twelveLabsService = twelveLabsService;
+        this.ffmpegService = ffmpegService;
     }
 
     public File convertToMp4(MultipartFile multipartFile) throws IOException, InterruptedException {
 
-        // 1. Create temp input file (original format)
         File inputTempFile = Files.createTempFile("upload-", "-" + multipartFile.getOriginalFilename()).toFile();
         multipartFile.transferTo(inputTempFile);
 
-        // 2. Create temp output file (mp4)
         File outputTempFile = Files.createTempFile("converted-", ".mp4").toFile();
 
-        // 3. FFmpeg command
-        String[] command = {
-                "ffmpeg",
-                "-y", // overwrite if exists
-                "-i", inputTempFile.getAbsolutePath(),
-                "-c:v", "libx264",
-                "-c:a", "aac",
-                outputTempFile.getAbsolutePath()
-        };
+        int exitCode = ffmpegService.convertToMp4(inputTempFile.getAbsolutePath(),outputTempFile.getAbsolutePath());
 
-        ProcessBuilder processBuilder = new ProcessBuilder(command);
-        processBuilder.redirectErrorStream(true);
-
-        Process process = processBuilder.start();
-
-        // 4. Consume FFmpeg output (important to avoid deadlocks)
-        try (var reader = new java.io.BufferedReader(
-                new java.io.InputStreamReader(process.getInputStream()))) {
-            while (reader.readLine() != null) {
-                // optionally log ffmpeg output
-            }
-        }
-
-        int exitCode = process.waitFor();
-
-        // 5. Cleanup input temp file
         inputTempFile.delete();
 
         if (exitCode != 0) {
             outputTempFile.delete();
             throw new RuntimeException("FFmpeg failed with exit code " + exitCode);
         }
-
-        // 6. Return MP4 temp file (caller must delete after use)
         return outputTempFile;
     }
 
@@ -130,16 +95,19 @@ public class VideoService {
     }
 
     public Video uploadToTwelveLabsAndSave(File file,String filename) {
-
-        TwelveLabsTaskResponse videoData = twelveLabsService.indexVideo(file);
-
-        if (videoData == null) {
-            return null;
-        }
-        else{
+        try {
+            TwelveLabsTaskResponse videoData = twelveLabsService.indexVideo(file);
+            if (videoData == null) {
+                System.out.println("Video data is null");
+                return null;
+            }
             Video video = new Video(videoData.videoId() ,filename);
             videoRepo.save(video);
             return video;
+        }
+        catch (Exception e) {
+           e.printStackTrace();
+           return null;
         }
     }
 

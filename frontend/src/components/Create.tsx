@@ -73,6 +73,10 @@ export default function UploadCopy() {
       sentence: `Give all time intervals of ${sentence}, only tell me the intervals, nothing else, and in this format: 00:00-00:06, 01:02-01:09, ... If there are no such time intervals, only return 00:00-00:00`,
     };
 
+
+   // Find timestamps containing FOOD-related visuals in a STREET environment at NIGHT.
+
+
     try {
       isMontageSubmitted(true);
       const res = await axios.post(`http://${backendURL}/montages`, request);
@@ -127,7 +131,7 @@ export default function UploadCopy() {
         </div>
       ) : (
         <div className="w-full bg-black flex flex-col items-center gap-[50px]">
-
+          <h1 className="w-full bg-red-500 text-[30px]">VIDEO IDs Are NULL when i uploaded a video</h1>
           {/* Desktop Layout */}
           <div className="hidden md:flex text-white bg-[rgb(20,20,20)] pt-[50px] poppins w-[65%] rounded-[20px] flex-col items-center justify-center pb-[50px]">
             <div className="flex flex-col items-center w-full gap-[20px]">
