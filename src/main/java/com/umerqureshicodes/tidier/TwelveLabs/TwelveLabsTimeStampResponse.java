@@ -1,4 +1,4 @@
-package com.umerqureshicodes.tidier.Utilities;
+package com.umerqureshicodes.tidier.TwelveLabs;
 
 public record TwelveLabsTimeStampResponse(
         String id,

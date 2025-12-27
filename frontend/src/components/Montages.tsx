@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import type { MontageResponseDTO, VideoRequestDTO } from "../Types";
+import type { MontageResponseDTO } from "../Types";
 import MontageDetails from "./MontageDetails";
 
 // Cache variables (persist across component mounts)
