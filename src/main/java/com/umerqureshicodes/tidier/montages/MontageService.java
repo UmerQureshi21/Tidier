@@ -24,8 +24,6 @@ import java.util.UUID;
 public class MontageService {
 
     private final FFmpegService fFmpegService;
-    @Value("${backend.host}")
-    private String backendHost;
     private final MontageRepo montageRepo;
     private final VideoService videoService;
     private final S3Service s3Service;
