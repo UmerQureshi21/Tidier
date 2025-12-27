@@ -1,4 +1,4 @@
-package com.umerqureshicodes.tidier.Config;
+package com.umerqureshicodes.tidier.WebSocket;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
