@@ -7,7 +7,7 @@ export default function RootLayout() {
     <div className="flex flex-col">
       <Navbar />
       <div className="mt-[75px] relative">
-        <Header height={320} />
+        <Header height={400} />
         <div className="relative bg-black w-full h-[40px] prompt-section"></div>
         <Outlet />
       </div>
