@@ -23,6 +23,10 @@ public class Video {
     @ManyToMany(mappedBy = "videos")
     private List<Montage> montages = new ArrayList<>();
     private String name;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private com.umerqureshicodes.tidier.user.User user;
+
 
     public Video(String videoId, String name, List<Montage> montages) {
         this.videoId = videoId;

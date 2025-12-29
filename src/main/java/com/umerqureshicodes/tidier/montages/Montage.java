@@ -29,6 +29,12 @@ public class Montage {
     private List<Video> videos = new ArrayList<>();
     private String prompt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private com.umerqureshicodes.tidier.user.User user;
+
+
+
 
     public Montage() {
 
