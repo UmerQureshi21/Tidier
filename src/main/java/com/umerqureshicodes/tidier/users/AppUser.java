@@ -1,4 +1,4 @@
-package com.umerqureshicodes.tidier.user;
+package com.umerqureshicodes.tidier.users;
 
 import com.umerqureshicodes.tidier.montages.Montage;
 import com.umerqureshicodes.tidier.videos.Video;
@@ -6,12 +6,13 @@ import jakarta.persistence.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 @Entity
 @Table(name = "users")
-public class User implements UserDetails {
+public class AppUser implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "userSeqGen")
@@ -27,14 +28,20 @@ public class User implements UserDetails {
     // --- OWNERSHIP ---
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Montage> montages;
+    private List<Montage> montages = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Video> videos;
+    private List<Video> videos = new ArrayList<>();
 
     // --- SECURITY ---
 
-    public User() {}
+    public AppUser() {}
+
+    public AppUser(String username, String email, String passwordHash) {
+        this.username = username;
+        this.email = email;
+        this.passwordHash = passwordHash;
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

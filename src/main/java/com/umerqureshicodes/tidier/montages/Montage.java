@@ -2,6 +2,7 @@ package com.umerqureshicodes.tidier.montages;
 
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+import com.umerqureshicodes.tidier.users.AppUser;
 import com.umerqureshicodes.tidier.videos.Video;
 import jakarta.persistence.*;
 
@@ -31,7 +32,7 @@ public class Montage {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private com.umerqureshicodes.tidier.user.User user;
+    private AppUser user;
 
 
 

@@ -22,7 +22,7 @@ public class UserConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(
-                auth -> auth.requestMatchers(HttpMethod.POST, "/login")
+                auth -> auth.requestMatchers(HttpMethod.POST, "/register")
                         .permitAll().anyRequest().authenticated()
                 )
                 .csrf(
