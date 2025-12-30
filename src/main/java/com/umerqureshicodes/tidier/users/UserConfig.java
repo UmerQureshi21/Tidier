@@ -1,7 +1,9 @@
 package com.umerqureshicodes.tidier.users;
 
-import com.umerqureshicodes.tidier.JWT.JWTAuthenticationFilter;
-import com.umerqureshicodes.tidier.JWT.JWTUtil;
+import com.umerqureshicodes.tidier.JWT.JwtAuthenticationFilter;
+import com.umerqureshicodes.tidier.JWT.JwtAuthenticationProvider;
+import com.umerqureshicodes.tidier.JWT.JwtUtil;
+import com.umerqureshicodes.tidier.JWT.JwtValidationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -15,15 +17,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import java.util.Arrays;
 import java.util.Collections;
 
 @Configuration
 @EnableWebSecurity
 public class UserConfig {
 
-    private final JWTUtil jwtUtil;
+    private final JwtUtil jwtUtil;
 
-    public UserConfig(JWTUtil jwtUtil) {
+    public UserConfig(JwtUtil jwtUtil) {
         this.jwtUtil = jwtUtil;
     }
 
@@ -43,8 +46,13 @@ public class UserConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(DaoAuthenticationProvider daoAuthenticationProvider) {
-        return new ProviderManager(Collections.singletonList(daoAuthenticationProvider));
+    public JwtAuthenticationProvider jwtAuthenticationProvider(JwtUtil jwtUtil, UserService userService) {
+        return new JwtAuthenticationProvider(jwtUtil, userService);
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(DaoAuthenticationProvider daoAuthenticationProvider, JwtAuthenticationProvider jwtAuthenticationProvider) {
+        return new ProviderManager(Arrays.asList(daoAuthenticationProvider,jwtAuthenticationProvider));
     }
 
     @Bean
@@ -53,8 +61,11 @@ public class UserConfig {
                                                    DaoAuthenticationProvider daoAuthenticationProvider) throws Exception {
 
         // Authentication filter responsible for login
-        JWTAuthenticationFilter jwtAuthenticationFilter =
-                new JWTAuthenticationFilter(authenticationManager, jwtUtil);
+        JwtAuthenticationFilter jwtAuthenticationFilter =
+                new JwtAuthenticationFilter(authenticationManager, jwtUtil);
+
+        // Validation filter responsible for checking Jwt in every request
+        JwtValidationFilter jwtValidationFilter = new JwtValidationFilter(authenticationManager);
 
         http
                 .csrf(csrf -> csrf.disable())
@@ -63,7 +74,8 @@ public class UserConfig {
                         .requestMatchers(HttpMethod.POST, "/register", "/generate-token").permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class) // generate token filter
+                .addFilterAfter(jwtValidationFilter, JwtAuthenticationFilter.class); // validate token filter
 
         return http.build();
     }
