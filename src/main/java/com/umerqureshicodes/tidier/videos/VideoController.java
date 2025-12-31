@@ -23,8 +23,8 @@ public class VideoController {
 
     @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @PostMapping("/videos")
-    public List<VideoResponseDTO> uploadVideoToBucket(@RequestParam("files") List<MultipartFile> multipartFiles) {
-        return videoService.save(multipartFiles);
+    public List<VideoResponseDTO> uploadVideoToBucket(@RequestParam("files") List<MultipartFile> multipartFiles, @RequestParam("email") String email) {
+        return videoService.save(multipartFiles, email);
     }
 
     @GetMapping("/videos/{key}")

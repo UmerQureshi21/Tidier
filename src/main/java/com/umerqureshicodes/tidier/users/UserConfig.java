@@ -1,9 +1,6 @@
 package com.umerqureshicodes.tidier.users;
 
-import com.umerqureshicodes.tidier.JWT.JwtAuthenticationFilter;
-import com.umerqureshicodes.tidier.JWT.JwtAuthenticationProvider;
-import com.umerqureshicodes.tidier.JWT.JwtUtil;
-import com.umerqureshicodes.tidier.JWT.JwtValidationFilter;
+import com.umerqureshicodes.tidier.JWT.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -61,21 +58,26 @@ public class UserConfig {
                                                    DaoAuthenticationProvider daoAuthenticationProvider) throws Exception {
 
         // Authentication filter responsible for login
-        JwtAuthenticationFilter jwtAuthenticationFilter =
-                new JwtAuthenticationFilter(authenticationManager, jwtUtil);
+        JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(authenticationManager, jwtUtil);
 
         // Validation filter responsible for checking Jwt in every request
         JwtValidationFilter jwtValidationFilter = new JwtValidationFilter(authenticationManager);
+
+        // Refresh filter for checking Jwt in every request
+        JwtRefreshFilter jwtRefreshFilter = new JwtRefreshFilter(authenticationManager, jwtUtil);
+
+
 
         http
                 .csrf(csrf -> csrf.disable())
                 .authenticationProvider(daoAuthenticationProvider)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/register", "/generate-token").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/register", "/generate-token", "/refresh-token").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class) // generate token filter
-                .addFilterAfter(jwtValidationFilter, JwtAuthenticationFilter.class); // validate token filter
+                .addFilterAfter(jwtValidationFilter, JwtAuthenticationFilter.class) // validate token filter
+                .addFilterAfter(jwtRefreshFilter, JwtValidationFilter.class) ; // refresh token filter
 
         return http.build();
     }
