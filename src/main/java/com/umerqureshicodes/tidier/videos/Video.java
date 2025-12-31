@@ -29,15 +29,17 @@ public class Video {
     private AppUser user;
 
 
-    public Video(String videoId, String name, List<Montage> montages) {
+    public Video(String videoId, String name, List<Montage> montages, AppUser user) {
         this.videoId = videoId;
         this.name = name;
         this.montages.addAll(montages);
+        this.user = user;
     }
 
-    public Video(String videoId, String name) {
+    public Video(String videoId, String name, AppUser user) {
         this.videoId = videoId;
         this.name = name;
+        this.user = user;
     }
 
     public List<Montage> getMontages() {

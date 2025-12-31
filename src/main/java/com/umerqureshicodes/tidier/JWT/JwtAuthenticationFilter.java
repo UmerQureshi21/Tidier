@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umerqureshicodes.tidier.users.UserRequestDTO;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -53,14 +54,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Perform authentication
             Authentication authResult = authenticationManager.authenticate(authenticationToken);
 
-            // On success, generate JWT
+            if(authResult.isAuthenticated()) {
             String token = jwtUtil.generateToken(authResult.getName(), 15);
+            response.setHeader("Authorization", "Bearer " + token) ;
 
-            response.setStatus(HttpServletResponse.SC_OK);
-            response.setContentType("application/json");
-            response.getWriter().write("{\"token\": \"" + token + "\"}");
-            response.getWriter().flush();
-            // Don't continue the chain for login
+            String refreshToken = jwtUtil.generateToken(authResult.getName(), 7*24*60);
+            // Set refresh token in HttpOnly Cookie
+            // We can also send it in response body but then client has to store in memory or in local storage
+            Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
+            refreshCookie.setHttpOnly(true); // prevent javascript from accessing
+                refreshCookie.setSecure(true); // sent only over https
+                refreshCookie.setPath("/refresh-token"); // Cookie available only for refresh endpoint
+                refreshCookie .setMaxAge(7*24*60*60);
+                response.addCookie(refreshCookie);
+
+            }
+
         } catch (Exception ex) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");

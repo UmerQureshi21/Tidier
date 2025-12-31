@@ -22,6 +22,8 @@ public class JwtAuthenticationProvider implements AuthenticationProvider {
 
     @Override
     public Authentication authenticate(Authentication authentication) {
+
+        // Extract raw token
         String token = ((JwtAuthenticationToken) authentication).getToken();
 
         String username = jwtUtil.validateAndExtractUsername(token);

@@ -6,6 +6,8 @@ import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsService;
 import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsTaskResponse;
 import com.umerqureshicodes.tidier.montages.Montage;
 import com.umerqureshicodes.tidier.s3.S3Service;
+import com.umerqureshicodes.tidier.users.AppUser;
+import com.umerqureshicodes.tidier.users.UserRepo;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,12 +24,14 @@ public class VideoService {
     private final S3Service s3Service;
     private final TwelveLabsService twelveLabsService;
     private final FFmpegService ffmpegService;
+    private final UserRepo userRepo;
     @Autowired
-    public VideoService(VideoRepo videoRepo, S3Service s3Service, TwelveLabsService twelveLabsService, FFmpegService ffmpegService) {
+    public VideoService(VideoRepo videoRepo, S3Service s3Service, TwelveLabsService twelveLabsService, FFmpegService ffmpegService, UserRepo userRepo) {
         this.videoRepo = videoRepo;
         this.s3Service = s3Service;
         this.twelveLabsService = twelveLabsService;
         this.ffmpegService = ffmpegService;
+        this.userRepo = userRepo;
     }
 
     public File convertToMp4(MultipartFile multipartFile) throws IOException, InterruptedException {
@@ -48,7 +52,7 @@ public class VideoService {
         return outputTempFile;
     }
 
-    public List<VideoResponseDTO> save(List<MultipartFile> files) {
+    public List<VideoResponseDTO> save(List<MultipartFile> files, String userEmail) {
         List<VideoResponseDTO> responses = new ArrayList<>();
 
         for (MultipartFile file : files) {
@@ -65,7 +69,8 @@ public class VideoService {
                 // Upload to TwelveLabs
                 Video uploadedVid = uploadToTwelveLabsAndSave(
                         tempFile,
-                        file.getOriginalFilename()
+                        file.getOriginalFilename(),
+                        userEmail
                 );
 
                 // Upload to S3 USING FILE
@@ -94,14 +99,19 @@ public class VideoService {
         return responses;
     }
 
-    public Video uploadToTwelveLabsAndSave(File file,String filename) {
+    public Video uploadToTwelveLabsAndSave(File file,String filename, String userEmail) {
         try {
             TwelveLabsTaskResponse videoData = twelveLabsService.indexVideo(file);
             if (videoData == null) {
                 System.out.println("Video data is null");
                 return null;
             }
-            Video video = new Video(videoData.videoId() ,filename);
+            Optional<AppUser> user = userRepo.findByEmail(userEmail);
+            if (!user.isPresent()) {
+                System.out.println("User not found");
+                return null;
+            }
+            Video video = new Video(videoData.videoId() ,filename, user.get());
             videoRepo.save(video);
             return video;
         }
