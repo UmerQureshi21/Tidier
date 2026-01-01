@@ -46,9 +46,10 @@ public class Montage {
         this.videos.addAll(videos);
     }
 
-    public Montage(String name, String prompt) {
+    public Montage(String name, String prompt, AppUser user) {
         this.name = name;
         this.prompt = prompt;
+        this.user = user;
     }
 
     public String getName() {

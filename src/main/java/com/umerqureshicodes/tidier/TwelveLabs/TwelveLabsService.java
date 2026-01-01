@@ -57,7 +57,7 @@ public class TwelveLabsService {
         if(response.getStatus() == 200 || response.getStatus() == 201) {
             return response.getBody();
         }
-        else{
+        else{ // if response.getStatus() == 429 then ive done more than 50 requests
             System.out.println("Error in 12Labs Service's getIntervalsOfTopic method: " + response.getStatus() + " " + response.getStatusText());
             return null;
         }

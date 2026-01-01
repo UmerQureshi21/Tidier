@@ -28,7 +28,7 @@ public class MontageController {
     @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @GetMapping("montages")
     @Cacheable(value = "montages", cacheManager = "cacheManager") // Looks under key named montages
-    public List<MontageResponseDTO> getUrl(){
-        return montageService.getMontages();
+    public List<MontageResponseDTO> getUrl(@RequestBody String userEmail){
+        return montageService.getMontages(userEmail);
     }
 }

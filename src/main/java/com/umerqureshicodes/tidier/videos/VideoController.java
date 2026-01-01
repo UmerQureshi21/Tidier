@@ -17,8 +17,8 @@ public class VideoController {
     @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @GetMapping("/videos")
     @Cacheable(value = "videos", cacheManager = "cacheManager") // Looks under key named videos
-    public List<VideoResponseDTO> getAllVideos() {
-        return videoService.getVideos();
+    public List<VideoResponseDTO> getAllVideos(@RequestBody String userEmail) {
+        return videoService.getVideos(userEmail);
     }
 
     @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
@@ -27,10 +27,7 @@ public class VideoController {
         return videoService.save(multipartFiles, email);
     }
 
-    @GetMapping("/videos/{key}")
-    public List<VideoResponseDTO> getVideoUrl(@PathVariable String key) {
-        return videoService.getVideos();
-    }
+
 
     @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @DeleteMapping("/videos/{id}")
