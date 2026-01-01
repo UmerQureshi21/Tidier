@@ -76,7 +76,7 @@ public class VideoService {
                 // Upload to S3 USING FILE
                 s3Service.putObject(
                         "tidier",
-                        "test/" + file.getOriginalFilename(),
+                        this.getS3Name(uploadedVid),
                         tempFile
                 );
 
@@ -121,16 +121,12 @@ public class VideoService {
         }
     }
 
-    public List<VideoResponseDTO> getVideos() {
+    public List<VideoResponseDTO> getVideos(String userEmail) {
         List<VideoResponseDTO> videoResponseDTOList = new ArrayList<>();
-        for (Video video : videoRepo.findAll()) {
-            if (video.getId() >= 20) { // ONLY 20TH VIDEO AND ONWARDS HAVE AWS STORED VIDEO, REMOVE THIS LOGIC AFTER
-                String preSignedUrl = s3Service.generatePresignedGetUrl("tidier", "test/"+video.getName()).toString();
+        for (Video video : videoRepo.findAllByUserEmail(userEmail)) {
+                System.out.println(video.getName());
+                String preSignedUrl = s3Service.generatePresignedGetUrl("tidier", this.getS3Name(video)).toString();
                 videoResponseDTOList.add(new VideoResponseDTO(video.getName(),video.getVideoId(),preSignedUrl));
-            }
-            else{
-                videoResponseDTOList.add(new VideoResponseDTO(video.getName(),video.getVideoId()));
-            }
         }
         return videoResponseDTOList;
     }
@@ -154,5 +150,9 @@ public class VideoService {
 
     public String getVideoUrl(String key) {
         return s3Service.generatePresignedGetUrl("tidier", key ).toString();
+    }
+
+    public String getS3Name(Video video) {
+        return "test/"+video.getName() + "-" + video.getVideoId();
     }
 }

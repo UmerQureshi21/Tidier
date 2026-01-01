@@ -6,7 +6,11 @@ import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsService;
 import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsTimeStampResponse;
 import com.umerqureshicodes.tidier.WebSocket.WebSocketServiceMessage;
 import com.umerqureshicodes.tidier.s3.S3Service;
+import com.umerqureshicodes.tidier.users.AppUser;
+import com.umerqureshicodes.tidier.users.UserRepo;
 import com.umerqureshicodes.tidier.videos.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -15,27 +19,29 @@ import java.io.*;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class MontageService {
 
+    private static final Logger log = LoggerFactory.getLogger(MontageService.class);
     private final FFmpegService fFmpegService;
     private final MontageRepo montageRepo;
+    private final UserRepo userRepo;
     private final VideoService videoService;
+    private final VideoRepo videoRepo;
     private final S3Service s3Service;
     private final TwelveLabsService twelveLabsService;
     private final SimpMessagingTemplate messagingTemplate;
-    public MontageService(MontageRepo montageRepo, VideoService videoService, S3Service s3Service, TwelveLabsService twelveLabsService, SimpMessagingTemplate messagingTemplate, FFmpegService fFmpegService) {
+    public MontageService(MontageRepo montageRepo, VideoService videoService, S3Service s3Service, TwelveLabsService twelveLabsService, SimpMessagingTemplate messagingTemplate, FFmpegService fFmpegService, UserRepo userRepo, VideoRepo videoRepo) {
         this.montageRepo = montageRepo;
         this.videoService = videoService;
         this.s3Service = s3Service;
         this.twelveLabsService = twelveLabsService;
         this.messagingTemplate = messagingTemplate;
         this.fFmpegService = fFmpegService;
+        this.userRepo = userRepo;
+        this.videoRepo = videoRepo;
     }
 
     private void notify(String message, String montagePath) {
@@ -52,8 +58,13 @@ public class MontageService {
     }
 
     public MontageResponseDTO createMontage(MontageRequestDTO montageRequestDTO) {
-        Montage montage = new Montage(montageRequestDTO.name(),montageRequestDTO.prompt());
-       int ffmpegCode = combineVideos(trimVideos(analyzeVideoWithPrompt(montageRequestDTO),montageRequestDTO.videoRequestDTOs()),montageRequestDTO.name());
+        Optional<AppUser> user = userRepo.findByEmail(montageRequestDTO.userEmail());
+        if(!user.isPresent()) {
+            System.out.println("User not found");
+            return null;
+        }
+        Montage montage = new Montage(montageRequestDTO.name(),montageRequestDTO.prompt(), user.get());
+       int ffmpegCode = combineVideos(trimVideos(analyzeVideoWithPrompt(montageRequestDTO),montageRequestDTO.videoRequestDTOs(),montageRequestDTO .userEmail() ),montageRequestDTO.name(),montageRequestDTO.userEmail());
        if(ffmpegCode == 0) {
            List<String> videoIds = new ArrayList<>();
            for (VideoRequestDTO v : montageRequestDTO.videoRequestDTOs()) {
@@ -66,7 +77,7 @@ public class MontageService {
            }
            // this can surely be put into one for loop
            montage.setVideos(videosInMontage);
-           String preSignedUrl = s3Service.generatePresignedGetUrl("tidier","montages/"+montageRequestDTO.name()+".mp4").toString() ;
+           String preSignedUrl = s3Service.generatePresignedGetUrl("tidier",getS3Name(montageRequestDTO.name(),montageRequestDTO.userEmail()) ).toString() ;
            notify(montageRequestDTO.name() +" created!", preSignedUrl);
            // add topic to send montage path to tsx component
            System.out.println(montageRequestDTO.name() +" created!");
@@ -82,16 +93,17 @@ public class MontageService {
     public List<String> analyzeVideoWithPrompt(MontageRequestDTO montageRequestDTO) {
         List<String> timestamps = new ArrayList<>();
         for(VideoRequestDTO v : montageRequestDTO.videoRequestDTOs()) {
-            TwelveLabsTimeStampResponse response = twelveLabsService.getIntervalsOfTopic(v.getVideoId(), montageRequestDTO.sentence());
-            if (response != null) {
-                timestamps.add(response.data());
-                notify("Successfully extracted " + montageRequestDTO.prompt() + " from " + v.getName(), null);
-            }
+//            TwelveLabsTimeStampResponse response = twelveLabsService.getIntervalsOfTopic(v.getVideoId(), montageRequestDTO.sentence());
+//            if (response != null) {
+//                timestamps.add(response.data());
+//                notify("Successfully extracted " + montageRequestDTO.prompt() + " from " + v.getName(), null);
+//            }
+            timestamps.add("00:00-00:02"); // ONLY ADDING THIS BECAUSE I HIT RATE LIMIT
         }
         return timestamps;
     }
 
-    public List<String> trimVideos(List<String> timeStamps, List<VideoRequestDTO> videoRequestDTOs) {
+    public List<String> trimVideos(List<String> timeStamps, List<VideoRequestDTO> videoRequestDTOs, String userEmail) {
         List<HashMap<String,String>> intervals = new ArrayList<>();
         List<String> trimmedVideosToCombine = new ArrayList<>();
         //timestamps in format of [[00:00-00:04, 00:04-00:08, 00:11-00:13],[00:01-00:03, 00:10-00:12]]
@@ -111,7 +123,12 @@ public class MontageService {
             System.out.println(interval.get("start")+" "+interval.get("end")+" "+interval.get("video"));
             if (!interval.get("start").equals(interval.get("end"))) {
                 try {
-                    URL videoUrl = s3Service.generatePresignedGetUrl("tidier", "test/" + interval.get("video"));
+                    Optional<Video> vid = videoRepo.findByUserEmailAndName(userEmail,interval.get("video"));
+                    if (!vid.isPresent()) {
+                        System.out.println("User email doesn't exist!");
+                        return null;
+                    }
+                    URL videoUrl = s3Service.generatePresignedGetUrl("tidier", videoService.getS3Name(vid.get()));
                     System.out.println(videoUrl.toString());
                     File inputTempFile = downloadPresignedUrlToTempFile(videoUrl.toString());
                     String trimmedVideoName = interval.get("video") + "-trimmed-" + UUID.randomUUID().toString() + ".mp4";
@@ -135,7 +152,7 @@ public class MontageService {
         return trimmedVideosToCombine;
     }
 
-    public int combineVideos(List<String> trimmedFiles, String outputFileName) {
+    public int combineVideos(List<String> trimmedFiles, String outputFileName, String  userEmail) {
         notify("Combining videos...", null);
         String tempDir = System.getProperty("java.io.tmpdir");
         if(trimmedFiles == null) {
@@ -157,7 +174,7 @@ public class MontageService {
                 }
                 File montageFile = tempPath.toFile();
                 Files.deleteIfExists(Paths.get(concatFile.getAbsolutePath()));
-                s3Service.putObject("tidier","montages/"+outputFileName+".mp4", montageFile);
+                s3Service.putObject("tidier",getS3Name(outputFileName,userEmail), montageFile);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -166,20 +183,24 @@ public class MontageService {
         return exitCode;
     }
 
-    public List<MontageResponseDTO> getMontages() {
+    public List<MontageResponseDTO> getMontages(String userEmail) {
         List<MontageResponseDTO> montageResponseDTOs = new ArrayList<>();
-        List<Montage> montages = montageRepo.findAll();
+        List<Montage> montages = montageRepo.findAllByUserEmail(userEmail);
         for (Montage montage : montages) {
             List<VideoResponseDTO> videoResponseDTOs = new ArrayList<>();
             List<Video> videos = montage.getVideos();
             for (Video video : videos) {
-                String videoPreviewUrl = videoService.getVideoUrl("test/" + video.getName());
+                String videoPreviewUrl = videoService.getVideoUrl(videoService.getS3Name(video));
                 videoResponseDTOs.add(new VideoResponseDTO(video.getName(),video.getVideoId(),videoPreviewUrl));
             }
-            String preSignedUrl = s3Service.generatePresignedGetUrl("tidier","montages/"+montage.getName()+".mp4").toString();
+            String preSignedUrl = s3Service.generatePresignedGetUrl("tidier",getS3Name(montage.getName(),userEmail)).toString();
             montageResponseDTOs.add(new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt(),preSignedUrl));
         }
         return montageResponseDTOs;
+    }
+
+    public String getS3Name(String name, String userEmail) {
+        return "montages/" + userEmail.split("@")[0] + "/" + name + ".mp4";
     }
 
     public String deleteMontage(Long montageId) {
