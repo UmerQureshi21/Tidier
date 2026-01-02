@@ -53,10 +53,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // Perform authentication
             Authentication authResult = authenticationManager.authenticate(authenticationToken);
+            System.out.println("Authentication successful: " + authResult.isAuthenticated());
+
 
             if(authResult.isAuthenticated()) {
             String token = jwtUtil.generateToken(authResult.getName(), 15);
-            response.setHeader("Authorization", "Bearer " + token) ;
+                System.out.println("Access token generated: " + token);
+                response.setHeader("Authorization", "Bearer " + token) ;
 
             String refreshToken = jwtUtil.generateToken(authResult.getName(), 7*24*60);
             // Set refresh token in HttpOnly Cookie
@@ -67,10 +70,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 refreshCookie.setPath("/refresh-token"); // Cookie available only for refresh endpoint
                 refreshCookie .setMaxAge(7*24*60*60);
                 response.addCookie(refreshCookie);
-
             }
 
         } catch (Exception ex) {
+            System.out.println("Exception in JwtAuthenticationFilter: " + ex.getMessage());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
             response.getWriter().write("{\"error\": \"Invalid credentials\"}");

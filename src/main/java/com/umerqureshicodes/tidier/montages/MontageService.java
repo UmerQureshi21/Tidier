@@ -93,12 +93,12 @@ public class MontageService {
     public List<String> analyzeVideoWithPrompt(MontageRequestDTO montageRequestDTO) {
         List<String> timestamps = new ArrayList<>();
         for(VideoRequestDTO v : montageRequestDTO.videoRequestDTOs()) {
-//            TwelveLabsTimeStampResponse response = twelveLabsService.getIntervalsOfTopic(v.getVideoId(), montageRequestDTO.sentence());
-//            if (response != null) {
-//                timestamps.add(response.data());
-//                notify("Successfully extracted " + montageRequestDTO.prompt() + " from " + v.getName(), null);
-//            }
-            timestamps.add("00:00-00:02"); // ONLY ADDING THIS BECAUSE I HIT RATE LIMIT
+            TwelveLabsTimeStampResponse response = twelveLabsService.getIntervalsOfTopic(v.getVideoId(), montageRequestDTO.sentence());
+            if (response != null) {
+                timestamps.add(response.data());
+                notify("Successfully extracted " + montageRequestDTO.prompt() + " from " + v.getName(), null);
+            }
+//            timestamps.add("00:00-00:02"); // ONLY ADDING THIS BECAUSE I HIT RATE LIMIT
         }
         return timestamps;
     }
