@@ -56,6 +56,9 @@ public class VideoService {
         List<VideoResponseDTO> responses = new ArrayList<>();
 
         for (MultipartFile file : files) {
+
+
+
             File tempFile = null;
 
             try {
@@ -64,6 +67,13 @@ public class VideoService {
                 } else {
                     tempFile = Files.createTempFile("upload-", ".mp4").toFile();
                     file.transferTo(tempFile); //after transferTo, the multipart is designed to no longer be used
+                }
+
+                double duration = ffmpegService.checkDuration(tempFile);
+                System.out.println("Duration: " + duration);
+                if(duration > 180){
+                    System.out.println("Duration exceeded, One or more videos have exceeded the maximum duration!");
+                    return null;
                 }
 
                 // Upload to TwelveLabs

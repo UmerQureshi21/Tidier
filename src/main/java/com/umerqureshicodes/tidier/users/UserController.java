@@ -11,6 +11,7 @@ public class UserController {
     private UserService userService;
 
 
+    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @PostMapping("/register")
     public UserResponseDTO register(@RequestBody UserRequestDTO userRequestDTO) {
         return userService.createUser(userRequestDTO);
