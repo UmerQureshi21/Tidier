@@ -11,7 +11,7 @@ export default function LogIn() {
   const [userName, setUserName] = useState("");
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   const backendURL = import.meta.env.VITE_BACKEND_URL;
 
@@ -62,8 +62,43 @@ export default function LogIn() {
       };
 
       if (isLogin) {
-        console.log("LOGIN REQUEST:", request);
-        // await axios.post(`${backendURL}/generate-token`, request);
+        try {
+          console.log("LOGIN REQUEST:", request);
+
+          const emailResponse = await axios.post(
+            `http://${backendURL}/login`,
+            request
+          );
+          if (!(emailResponse.data.username == null)) {
+            const tokenResponse = await axios.post(
+              `http://${backendURL}/generate-token`,
+              {
+                username: userName,
+                password: password,
+              }
+            );
+            // If we reach here, login was successful
+            console.log("LOGIN SUCCESS:");
+            const accessToken = tokenResponse.headers.authorization;
+            localStorage.setItem("accessToken", accessToken);
+            navigate("/app/dashboard");
+          } else {
+            setError("Invalid Email");
+          }
+        } catch (err: any) {
+          if (axios.isAxiosError(err) && err.response) {
+            if (err.response.status === 401) {
+              // invalid username/password
+              setError("Invalid username or password.");
+            } else {
+              setError(`Server error: ${err.response.status}`);
+            }
+            console.error("REQUEST FAILED:", err.response);
+          } else {
+            setError("Network error. Please try again.");
+            console.error("REQUEST FAILED (no response):", err);
+          }
+        }
       } else {
         console.log("REGISTER REQUEST:", request);
         const response = await axios.post(
@@ -82,10 +117,10 @@ export default function LogIn() {
           );
           const accessToken = tokenResponse.headers.authorization; // or response.headers['authorization']
           // Store it somewhere (localStorage, state, context, etc.)
-          console.log("HEADERS:\n\n"+tokenResponse.headers)
+          console.log("HEADERS:\n\n" + tokenResponse.headers);
           localStorage.setItem("accessToken", accessToken);
           console.log(localStorage);
-          navigate("/app/dashboard")
+          navigate("/app/dashboard");
         } else {
           console.log("email or username already used");
         }

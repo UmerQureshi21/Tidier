@@ -22,18 +22,10 @@ public class UserService implements UserDetailsService {
         this.passwordEncoder = passwordEncoder;
     }
 
-
     public UserResponseDTO createUser(UserRequestDTO userRequestDTO) {
-        Optional<AppUser> prevUserWithSameEmail = userRepo.findByEmail(userRequestDTO.email());
-        if(prevUserWithSameEmail.isPresent()) {
+        if (!areCredentialsUnique(userRequestDTO )){
             return new UserResponseDTO(null,null);
         }
-        Optional<AppUser> prevUserWithSameName = userRepo.findByUsername(userRequestDTO.username()) ;
-        if(prevUserWithSameName.isPresent()) {
-            return new UserResponseDTO(null,null);
-        }
-
-
         AppUser user = userRepo.save(new AppUser(
                 userRequestDTO.username(),
                 userRequestDTO.email(),
@@ -42,6 +34,28 @@ public class UserService implements UserDetailsService {
         return new UserResponseDTO(user.getUsername(),user.getEmail());
     }
 
+    public UserResponseDTO login(UserRequestDTO dto) {
+        Optional<AppUser> userOptional = userRepo.findByUsernameAndEmail(dto.username(), dto.email());
+        if (userOptional.isPresent()){
+            AppUser user = userOptional.get();
+            System.out.println("Email verified!");
+            return new UserResponseDTO(user.getUsername(),user.getEmail());
+        }
+        System.out.println("Email not verified!");
+        return new UserResponseDTO(null,null);
+    }
+
+    private boolean areCredentialsUnique(UserRequestDTO userRequestDTO) {
+        Optional<AppUser> prevUserWithSameEmail = userRepo.findByEmail(userRequestDTO.email());
+        if(prevUserWithSameEmail.isPresent()) {
+            return false;
+        }
+        Optional<AppUser> prevUserWithSameName = userRepo.findByUsername(userRequestDTO.username()) ;
+        if(prevUserWithSameName.isPresent()) {
+            return false;
+        }
+        return true;
+    }
     @Override
     public AppUser loadUserByUsername(String username) throws UsernameNotFoundException {
         return userRepo.findByUsername(username)

@@ -17,6 +17,12 @@ public class UserController {
         return userService.createUser(userRequestDTO);
     }
 
+    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
+    @PostMapping("/login")
+    public UserResponseDTO login(@RequestBody UserRequestDTO dto) {
+        return userService.login(dto) ;
+    }
+
     @GetMapping("/test")
     public String test(@RequestBody String random) {
         return random;
