@@ -57,14 +57,14 @@ public class MontageService {
         return new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt(),montageUrl);
     }
 
-    public MontageResponseDTO createMontage(MontageRequestDTO montageRequestDTO) {
-        Optional<AppUser> user = userRepo.findByEmail(montageRequestDTO.userEmail());
+    public MontageResponseDTO createMontage(MontageRequestDTO montageRequestDTO, String email) {
+        Optional<AppUser> user = userRepo.findByEmail(email);
         if(!user.isPresent()) {
             System.out.println("User not found");
             return null;
         }
         Montage montage = new Montage(montageRequestDTO.name(),montageRequestDTO.prompt(), user.get());
-       int ffmpegCode = combineVideos(trimVideos(analyzeVideoWithPrompt(montageRequestDTO),montageRequestDTO.videoRequestDTOs(),montageRequestDTO .userEmail() ),montageRequestDTO.name(),montageRequestDTO.userEmail());
+       int ffmpegCode = combineVideos(trimVideos(analyzeVideoWithPrompt(montageRequestDTO),montageRequestDTO.videoRequestDTOs(),email),montageRequestDTO.name(),email);
        if(ffmpegCode == 0) {
            List<String> videoIds = new ArrayList<>();
            for (VideoRequestDTO v : montageRequestDTO.videoRequestDTOs()) {
@@ -77,7 +77,7 @@ public class MontageService {
            }
            // this can surely be put into one for loop
            montage.setVideos(videosInMontage);
-           String preSignedUrl = s3Service.generatePresignedGetUrl("tidier",getS3Name(montageRequestDTO.name(),montageRequestDTO.userEmail()) ).toString() ;
+           String preSignedUrl = s3Service.generatePresignedGetUrl("tidier",getS3Name(montageRequestDTO.name(),email) ).toString() ;
            notify(montageRequestDTO.name() +" created!", preSignedUrl);
            // add topic to send montage path to tsx component
            System.out.println(montageRequestDTO.name() +" created!");
