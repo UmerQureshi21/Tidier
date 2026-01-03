@@ -8,7 +8,6 @@ public record MontageRequestDTO(
         String name,
         List<VideoRequestDTO> videoRequestDTOs,
         String prompt,
-        String sentence,
-        String userEmail
+        String sentence
 ) {
 }
