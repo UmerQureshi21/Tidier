@@ -23,7 +23,13 @@ export default function Upload() {
       }
       // Fetch new data
       console.log("Fetching fresh videos from API");
-      const res = await axios.get(`http://${backendURL}/videos`);
+      const token = localStorage.getItem("accessToken");
+      console.log("TOKEN: " +token)
+      const res = await axios.get(`http://${backendURL}/videos`, {
+        headers: {
+          Authorization: token,
+        },
+      });
       const data = res.data;
       let fileDetails = [];
       for (let file of data) {
