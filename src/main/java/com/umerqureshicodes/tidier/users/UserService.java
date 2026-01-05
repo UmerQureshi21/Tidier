@@ -28,29 +28,30 @@ public class UserService implements UserDetailsService {
         }
         AppUser user = userRepo.save(new AppUser(
                 userRequestDTO.username(),
-                userRequestDTO.email(),
-                passwordEncoder.encode(userRequestDTO.password())
+                passwordEncoder.encode(userRequestDTO.password()),
+                userRequestDTO.displayedName()
+
         ));
-        return new UserResponseDTO(user.getUsername(),user.getEmail());
+        return new UserResponseDTO(user.getUsername(),user.getDisplayedName());
     }
 
     public UserResponseDTO login(UserRequestDTO dto) {
-        Optional<AppUser> userOptional = userRepo.findByUsernameAndEmail(dto.username(), dto.email());
+        Optional<AppUser> userOptional = userRepo.findByUsername(dto.username()) ;//userRepo.findByUsernameAndEmail(dto.username(), dto.username());
         if (userOptional.isPresent()){
             AppUser user = userOptional.get();
             System.out.println("Email verified!");
-            return new UserResponseDTO(user.getUsername(),user.getEmail());
+            return new UserResponseDTO(user.getUsername(),user.getDisplayedName());
         }
         System.out.println("Email not verified!");
         return new UserResponseDTO(null,null);
     }
 
     private boolean areCredentialsUnique(UserRequestDTO userRequestDTO) {
-        Optional<AppUser> prevUserWithSameEmail = userRepo.findByEmail(userRequestDTO.email());
+        Optional<AppUser> prevUserWithSameEmail = userRepo.findByUsername(userRequestDTO.username()) ;
         if(prevUserWithSameEmail.isPresent()) {
             return false;
         }
-        Optional<AppUser> prevUserWithSameName = userRepo.findByUsername(userRequestDTO.username()) ;
+        Optional<AppUser> prevUserWithSameName = userRepo.findByUsername(userRequestDTO.displayedName()) ;
         if(prevUserWithSameName.isPresent()) {
             return false;
         }

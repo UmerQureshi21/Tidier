@@ -34,9 +34,6 @@ public class Montage {
     @JoinColumn(name = "user_id", nullable = false)
     private AppUser user;
 
-
-
-
     public Montage() {
 
     }

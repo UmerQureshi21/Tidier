@@ -7,6 +7,7 @@ import MontageDetails from "./MontageDetails";
 let cachedMontages: MontageResponseDTO[] | null = null;
 let cacheTime: number = 0;
 const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+const token = localStorage.getItem("accessToken");
 
 export default function Montages() {
   const backendURL = import.meta.env.VITE_BACKEND_URL;
@@ -25,7 +26,11 @@ export default function Montages() {
 
       // Fetch new data
       console.log("Fetching fresh montages from API");
-      const res = await axios.get(`http://${backendURL}/montages`);
+      const res = await axios.get(`http://${backendURL}/montages`, {
+        headers: {
+          Authorization: token,
+        },
+      });
       const data: MontageResponseDTO[] = res.data;
 
       for (let idk of data) {
@@ -53,10 +58,7 @@ export default function Montages() {
             key={`montage ${index}`}
             title={montage.name}
             topic={montage.prompt}
-            photos={
-                montage.videos.map(
-              (video, vi) => video.previewUrl
-            )}
+            photos={montage.videos.map((video, vi) => video.previewUrl)}
             videoSrc={montage.preSignedUrl}
           />
         ))}

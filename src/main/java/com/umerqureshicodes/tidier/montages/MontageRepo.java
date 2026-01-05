@@ -8,6 +8,6 @@ import java.util.List;
 
 @Repository
 public interface MontageRepo extends JpaRepository<Montage, Long> {
-    List<Montage> findAllByUserEmail(String email);
+    List<Montage> findAllByUserUsername(String username);
 
 }

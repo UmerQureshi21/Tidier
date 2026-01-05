@@ -58,7 +58,7 @@ public class MontageService {
     }
 
     public MontageResponseDTO createMontage(MontageRequestDTO montageRequestDTO, String email) {
-        Optional<AppUser> user = userRepo.findByEmail(email);
+        Optional<AppUser> user = userRepo.findByUsername(email) ;
         if(!user.isPresent()) {
             System.out.println("User not found");
             return null;
@@ -123,7 +123,7 @@ public class MontageService {
             System.out.println(interval.get("start")+" "+interval.get("end")+" "+interval.get("video"));
             if (!interval.get("start").equals(interval.get("end"))) {
                 try {
-                    Optional<Video> vid = videoRepo.findByUserEmailAndName(userEmail,interval.get("video"));
+                    Optional<Video> vid = videoRepo.findByUserUsernameAndName(userEmail,interval.get("video"));
                     if (!vid.isPresent()) {
                         System.out.println("User email doesn't exist!");
                         return null;
@@ -185,7 +185,7 @@ public class MontageService {
 
     public List<MontageResponseDTO> getMontages(String userEmail) {
         List<MontageResponseDTO> montageResponseDTOs = new ArrayList<>();
-        List<Montage> montages = montageRepo.findAllByUserEmail(userEmail);
+        List<Montage> montages = montageRepo.findAllByUserUsername(userEmail) ;
         for (Montage montage : montages) {
             List<VideoResponseDTO> videoResponseDTOs = new ArrayList<>();
             List<Video> videos = montage.getVideos();

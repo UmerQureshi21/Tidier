@@ -116,7 +116,7 @@ public class VideoService {
                 System.out.println("Video data is null");
                 return null;
             }
-            Optional<AppUser> user = userRepo.findByEmail(userEmail);
+            Optional<AppUser> user = userRepo.findByUsername(userEmail) ;
             if (!user.isPresent()) {
                 System.out.println("User not found");
                 return null;
@@ -133,7 +133,7 @@ public class VideoService {
 
     public List<VideoResponseDTO> getVideos(String userEmail) {
         List<VideoResponseDTO> videoResponseDTOList = new ArrayList<>();
-        for (Video video : videoRepo.findAllByUserEmail(userEmail)) {
+        for (Video video : videoRepo.findAllByUserUsername(userEmail)) {
                 System.out.println(video.getName());
                 String preSignedUrl = s3Service.generatePresignedGetUrl("tidier", this.getS3Name(video)).toString();
                 videoResponseDTOList.add(new VideoResponseDTO(video.getName(),video.getVideoId(),preSignedUrl));
