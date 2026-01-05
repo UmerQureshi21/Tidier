@@ -7,7 +7,7 @@ import type {
 
 const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
-let cachedVideos: VideoRequestDTO[] | null = null;
+let cachedVideos: MontageResponseDTO[] | null = null;
 let cacheTime: number = 0;
 
 const backendURL = import.meta.env.VITE_BACKEND_URL;
@@ -45,6 +45,36 @@ export async function createMontage(
   return data;
 }
 
-export async function getAllmontages(){
-    
+export async function getAllMontages(): Promise<MontageResponseDTO[]> {
+  try {
+    const now = Date.now();
+    const token = getToken();
+
+    // Check if cache exists and is still valid
+    if (cachedVideos && now - cacheTime < CACHE_DURATION) {
+      console.log("Using cached videos");
+      return cachedVideos;
+    }
+
+    // Fetch new data
+    console.log("Fetching fresh videos from API");
+    console.log("TOKEN: " + token);
+
+    const res = await axios.get(`http://${backendURL}/montages`, {
+      headers: {
+        Authorization: token,
+      },
+    });
+
+    const fileDetails = res.data;
+
+    // Store in cache
+    cachedVideos = fileDetails;
+    cacheTime = now;
+
+    return fileDetails;
+  } catch (err) {
+    console.error("Failed to fetch videos:", err);
+    throw err;
+  }
 }
