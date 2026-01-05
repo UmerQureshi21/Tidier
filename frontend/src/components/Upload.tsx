@@ -1,76 +1,37 @@
 import { useEffect, useState } from "react";
 import FileDetails from "./VideoDetails";
 import type { VideoRequestDTO } from "../Types";
-import axios from "axios";
+import {
+  clearVideoCache,
+  getAllVideos,
+  uploadVideos,
+} from "../services/videoService";
 
-// Cache variables (persist across component mounts)
-let cachedVideos: VideoRequestDTO[] | null = null;
-let cacheTime: number = 0;
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
-const token = localStorage.getItem("accessToken");
-
-// I logged in, loaded some videos, then went back and signed up,
-// but videos from the prev user which i was, loaded, until i
-// reloaded the site and it worked again (no montages were shown
-// which is good because i jsut signed up)
 
 export default function Upload() {
-  const backendURL = import.meta.env.VITE_BACKEND_URL;
-  let [prevFiles, setPrevFiles] = useState<VideoRequestDTO[]>([]);
+  const [prevFiles, setPrevFiles] = useState<VideoRequestDTO[]>([]);
 
-  async function getAllFiles() {
+  async function loadVideos() {
     try {
-      const now = Date.now();
-      // Check if cache exists and is still valid
-      if (cachedVideos && now - cacheTime < CACHE_DURATION) {
-        console.log("Using cached videos");
-        setPrevFiles(cachedVideos);
-        return;
-      }
-      // Fetch new data
-      console.log("Fetching fresh videos from API");
-      console.log("TOKEN: " + token);
-      const res = await axios.get(`http://${backendURL}/videos`, {
-        headers: {
-          Authorization: token,
-        },
-      });
-      const data = res.data;
-      let fileDetails = [];
-      for (let file of data) {
-        fileDetails.push(file);
-        console.log(file.previewUrl);
-      }
-      setPrevFiles(fileDetails);
-      // Store in cache
-      cachedVideos = fileDetails;
-      cacheTime = now;
+      const videos = await getAllVideos();
+      setPrevFiles(videos);
     } catch (err) {
-      console.error("Upload failed bro:", err);
+      console.error("Error loading videos:", err);
     }
   }
 
   useEffect(() => {
-    getAllFiles();
+    loadVideos();
   }, []);
 
   async function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const request = new FormData();
     if (e.target.files) {
-      for (let [index, file] of Object.entries(e.target.files)) {
-        console.log(`File ${index}: ${file}`);
-        request.append("files", file);
-      }
       try {
-        const res = await axios.post(`http://${backendURL}/videos`, request, {
-          headers: {
-            Authorization: token,
-          },
-        });
-        console.log("Upload successful:", res.data);
-        getAllFiles();
+        await uploadVideos(e.target.files);
+        clearVideoCache(); // Clear cache so fresh data is fetched
+        await loadVideos();
       } catch (err) {
-        console.error("Upload failed:", err);
+        console.error("Error uploading videos:", err);
       }
     }
   }
