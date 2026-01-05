@@ -1,6 +1,8 @@
 package com.umerqureshicodes.tidier.videos;
 
+import com.umerqureshicodes.tidier.users.AppUser;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
@@ -17,20 +19,23 @@ public class VideoController {
     @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @GetMapping("/videos")
     @Cacheable(value = "videos", cacheManager = "cacheManager") // Looks under key named videos
-    public List<VideoResponseDTO> getAllVideos() {
-        return videoService.getVideos();
+    public List<VideoResponseDTO> getAllVideos(@AuthenticationPrincipal AppUser user) {
+        // user is the one from JWT
+        String email = user.getUsername();
+        return videoService.getVideos(email);
     }
 
     @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @PostMapping("/videos")
-    public List<VideoResponseDTO> uploadVideoToBucket(@RequestParam("files") List<MultipartFile> multipartFiles) {
-        return videoService.save(multipartFiles);
+    public List<VideoResponseDTO> uploadVideoToBucket(
+            @AuthenticationPrincipal AppUser user,
+            @RequestParam("files") List<MultipartFile> multipartFiles
+    ) {
+        String email = user.getUsername();   // pulled from JWT-authenticated user
+        return videoService.save(multipartFiles, email);
     }
 
-    @GetMapping("/videos/{key}")
-    public List<VideoResponseDTO> getVideoUrl(@PathVariable String key) {
-        return videoService.getVideos();
-    }
+
 
     @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @DeleteMapping("/videos/{id}")

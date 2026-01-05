@@ -17,3 +17,14 @@ export type MontageResponseDTO = {
   prompt: string;
   videos: VideoRequestDTO[];
 };
+
+export type UserRequestDTO = {
+  displayedName: string;
+  password: string;
+  username: string;
+};
+
+export type UserResponseDTO = {
+  username: string;
+  displayedName: string;
+};

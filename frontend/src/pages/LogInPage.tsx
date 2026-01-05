@@ -22,7 +22,7 @@ export default function LogInPage() {
     <div className="relative min-h-screen bg-gray-950 flex poppins-font">
       {windowWidth >= 1024 ? (
         <>
-          <div className="absolute w-[50%] top-[90px] left-[100px] z-20">
+          <div className="absolute w-[50%] top-[30px] left-[100px] z-20">
             <LogIn />
           </div>
           <div

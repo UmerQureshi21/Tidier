@@ -3,6 +3,7 @@ package com.umerqureshicodes.tidier.videos;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.umerqureshicodes.tidier.montages.Montage;
+import com.umerqureshicodes.tidier.users.AppUser;
 import jakarta.persistence.*;
 
 import java.util.ArrayList;
@@ -23,16 +24,22 @@ public class Video {
     @ManyToMany(mappedBy = "videos")
     private List<Montage> montages = new ArrayList<>();
     private String name;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private AppUser user;
 
-    public Video(String videoId, String name, List<Montage> montages) {
+
+    public Video(String videoId, String name, List<Montage> montages, AppUser user) {
         this.videoId = videoId;
         this.name = name;
         this.montages.addAll(montages);
+        this.user = user;
     }
 
-    public Video(String videoId, String name) {
+    public Video(String videoId, String name, AppUser user) {
         this.videoId = videoId;
         this.name = name;
+        this.user = user;
     }
 
     public List<Montage> getMontages() {

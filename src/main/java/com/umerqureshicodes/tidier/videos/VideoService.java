@@ -6,6 +6,8 @@ import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsService;
 import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsTaskResponse;
 import com.umerqureshicodes.tidier.montages.Montage;
 import com.umerqureshicodes.tidier.s3.S3Service;
+import com.umerqureshicodes.tidier.users.AppUser;
+import com.umerqureshicodes.tidier.users.UserRepo;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,12 +24,14 @@ public class VideoService {
     private final S3Service s3Service;
     private final TwelveLabsService twelveLabsService;
     private final FFmpegService ffmpegService;
+    private final UserRepo userRepo;
     @Autowired
-    public VideoService(VideoRepo videoRepo, S3Service s3Service, TwelveLabsService twelveLabsService, FFmpegService ffmpegService) {
+    public VideoService(VideoRepo videoRepo, S3Service s3Service, TwelveLabsService twelveLabsService, FFmpegService ffmpegService, UserRepo userRepo) {
         this.videoRepo = videoRepo;
         this.s3Service = s3Service;
         this.twelveLabsService = twelveLabsService;
         this.ffmpegService = ffmpegService;
+        this.userRepo = userRepo;
     }
 
     public File convertToMp4(MultipartFile multipartFile) throws IOException, InterruptedException {
@@ -48,10 +52,13 @@ public class VideoService {
         return outputTempFile;
     }
 
-    public List<VideoResponseDTO> save(List<MultipartFile> files) {
+    public List<VideoResponseDTO> save(List<MultipartFile> files, String userEmail) {
         List<VideoResponseDTO> responses = new ArrayList<>();
 
         for (MultipartFile file : files) {
+
+
+
             File tempFile = null;
 
             try {
@@ -62,16 +69,24 @@ public class VideoService {
                     file.transferTo(tempFile); //after transferTo, the multipart is designed to no longer be used
                 }
 
+                double duration = ffmpegService.checkDuration(tempFile);
+                System.out.println("Duration: " + duration);
+                if(duration > 180){
+                    System.out.println("Duration exceeded, One or more videos have exceeded the maximum duration!");
+                    return null;
+                }
+
                 // Upload to TwelveLabs
                 Video uploadedVid = uploadToTwelveLabsAndSave(
                         tempFile,
-                        file.getOriginalFilename()
+                        file.getOriginalFilename(),
+                        userEmail
                 );
 
                 // Upload to S3 USING FILE
                 s3Service.putObject(
                         "tidier",
-                        "test/" + file.getOriginalFilename(),
+                        this.getS3Name(uploadedVid),
                         tempFile
                 );
 
@@ -94,14 +109,19 @@ public class VideoService {
         return responses;
     }
 
-    public Video uploadToTwelveLabsAndSave(File file,String filename) {
+    public Video uploadToTwelveLabsAndSave(File file,String filename, String userEmail) {
         try {
             TwelveLabsTaskResponse videoData = twelveLabsService.indexVideo(file);
             if (videoData == null) {
                 System.out.println("Video data is null");
                 return null;
             }
-            Video video = new Video(videoData.videoId() ,filename);
+            Optional<AppUser> user = userRepo.findByUsername(userEmail) ;
+            if (!user.isPresent()) {
+                System.out.println("User not found");
+                return null;
+            }
+            Video video = new Video(videoData.videoId() ,filename, user.get());
             videoRepo.save(video);
             return video;
         }
@@ -111,16 +131,12 @@ public class VideoService {
         }
     }
 
-    public List<VideoResponseDTO> getVideos() {
+    public List<VideoResponseDTO> getVideos(String userEmail) {
         List<VideoResponseDTO> videoResponseDTOList = new ArrayList<>();
-        for (Video video : videoRepo.findAll()) {
-            if (video.getId() >= 20) { // ONLY 20TH VIDEO AND ONWARDS HAVE AWS STORED VIDEO, REMOVE THIS LOGIC AFTER
-                String preSignedUrl = s3Service.generatePresignedGetUrl("tidier", "test/"+video.getName()).toString();
+        for (Video video : videoRepo.findAllByUserUsername(userEmail)) {
+                System.out.println(video.getName());
+                String preSignedUrl = s3Service.generatePresignedGetUrl("tidier", this.getS3Name(video)).toString();
                 videoResponseDTOList.add(new VideoResponseDTO(video.getName(),video.getVideoId(),preSignedUrl));
-            }
-            else{
-                videoResponseDTOList.add(new VideoResponseDTO(video.getName(),video.getVideoId()));
-            }
         }
         return videoResponseDTOList;
     }
@@ -144,5 +160,9 @@ public class VideoService {
 
     public String getVideoUrl(String key) {
         return s3Service.generatePresignedGetUrl("tidier", key ).toString();
+    }
+
+    public String getS3Name(Video video) {
+        return "test/"+video.getName() + "-" + video.getVideoId();
     }
 }

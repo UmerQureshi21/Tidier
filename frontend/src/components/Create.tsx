@@ -13,6 +13,8 @@ import FinishedMontage from "./FinishedMontage";
 let cachedVideos: VideoRequestDTO[] | null = null;
 let cacheTime: number = 0;
 const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+const token = localStorage.getItem("accessToken");
+
 
 export default function UploadCopy() {
   const backendURL = import.meta.env.VITE_BACKEND_URL;
@@ -38,7 +40,12 @@ export default function UploadCopy() {
 
       // Fetch new data
       console.log("Fetching fresh videos from API");
-      const res = await axios.get(`http://${backendURL}/videos`);
+      console.log("TOKEN: " + token);
+      const res = await axios.get(`http://${backendURL}/videos`, {
+        headers: {
+          Authorization: token,
+        },
+      });
       const data = res.data;
 
       let fileDetails = [];
@@ -73,13 +80,16 @@ export default function UploadCopy() {
       sentence: `Give all time intervals of ${sentence}, only tell me the intervals, nothing else, and in this format: 00:00-00:06, 01:02-01:09, ... If there are no such time intervals, only return 00:00-00:00`,
     };
 
-
-   // Find timestamps containing FOOD-related visuals in a STREET environment at NIGHT.
-
+    // Find timestamps containing FOOD-related visuals in a STREET environment at NIGHT.
 
     try {
       isMontageSubmitted(true);
-      const res = await axios.post(`http://${backendURL}/montages`, request);
+      console.log("TOKEN: " +token)
+      const res = await axios.post(`http://${backendURL}/montages`, request,  {
+        headers: {
+          Authorization: token,
+        },
+      });
       let data: MontageResponseDTO = res.data;
       setPreSignedUrl(data.preSignedUrl);
       setMontageName(data.name);
@@ -135,7 +145,9 @@ export default function UploadCopy() {
           <div className="hidden md:flex text-white bg-[rgb(20,20,20)] pt-[50px] poppins w-[65%] rounded-[20px] flex-col items-center justify-center pb-[50px]">
             <div className="flex flex-col items-center w-full gap-[20px]">
               <div className="flex w-[60%] justify-between items-center gap-[20px]">
-                <h1 className="text-[35px] text-[#6600FF] whitespace-nowrap">Topic:</h1>
+                <h1 className="text-[35px] text-[#6600FF] whitespace-nowrap">
+                  Topic:
+                </h1>
                 <input
                   type="text"
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,7 +159,9 @@ export default function UploadCopy() {
                 />
               </div>
               <div className="flex w-[60%] justify-between items-center gap-[20px]">
-                <h1 className="text-[35px] text-[#6600FF] whitespace-nowrap">Title:</h1>
+                <h1 className="text-[35px] text-[#6600FF] whitespace-nowrap">
+                  Title:
+                </h1>
                 <input
                   type="text"
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {

@@ -7,6 +7,12 @@ import axios from "axios";
 let cachedVideos: VideoRequestDTO[] | null = null;
 let cacheTime: number = 0;
 const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+const token = localStorage.getItem("accessToken");
+
+// I logged in, loaded some videos, then went back and signed up,
+// but videos from the prev user which i was, loaded, until i
+// reloaded the site and it worked again (no montages were shown
+// which is good because i jsut signed up)
 
 export default function Upload() {
   const backendURL = import.meta.env.VITE_BACKEND_URL;
@@ -23,7 +29,12 @@ export default function Upload() {
       }
       // Fetch new data
       console.log("Fetching fresh videos from API");
-      const res = await axios.get(`http://${backendURL}/videos`);
+      console.log("TOKEN: " + token);
+      const res = await axios.get(`http://${backendURL}/videos`, {
+        headers: {
+          Authorization: token,
+        },
+      });
       const data = res.data;
       let fileDetails = [];
       for (let file of data) {
@@ -51,7 +62,11 @@ export default function Upload() {
         request.append("files", file);
       }
       try {
-        const res = await axios.post(`http://${backendURL}/videos`, request);
+        const res = await axios.post(`http://${backendURL}/videos`, request, {
+          headers: {
+            Authorization: token,
+          },
+        });
         console.log("Upload successful:", res.data);
         getAllFiles();
       } catch (err) {
