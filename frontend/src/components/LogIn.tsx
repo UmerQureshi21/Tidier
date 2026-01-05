@@ -18,7 +18,7 @@ export default function LogIn() {
   const validateFields = () => {
     const errors: Record<string, string> = {};
 
-    if (!userName.trim()) {
+    if (!userName.trim() && !isLogin) {
       errors.userName = "Name is required";
     }
     if (!email.trim()) {
@@ -56,35 +56,28 @@ export default function LogIn() {
       setFieldErrors({});
 
       const request: UserRequestDTO = {
-        username: userName,
+        username: email,
         password: password,
-        email: email,
+        displayedName: userName,
       };
 
       if (isLogin) {
         try {
           console.log("LOGIN REQUEST:", request);
 
-          const emailResponse = await axios.post(
-            `http://${backendURL}/login`,
-            request
+          const tokenResponse = await axios.post(
+            `http://${backendURL}/generate-token`,
+            {
+              username: email,
+              password: password,
+            }
           );
-          if (!(emailResponse.data.username == null)) {
-            const tokenResponse = await axios.post(
-              `http://${backendURL}/generate-token`,
-              {
-                username: userName,
-                password: password,
-              }
-            );
-            // If we reach here, login was successful
-            console.log("LOGIN SUCCESS:");
-            const accessToken = tokenResponse.headers.authorization;
-            localStorage.setItem("accessToken", accessToken);
-            navigate("/app/dashboard");
-          } else {
-            setError("Invalid Email");
-          }
+          // If we reach here, login was successful
+          // console.log("LOGIN SUCCESS: \n\n " + tokenResponse);
+          const accessToken = tokenResponse.headers.authorization;
+          localStorage.setItem("accessToken", accessToken);
+          console.log("ACCESS TOKEN: "+localStorage.getItem("accessToken"))
+          navigate("/app/dashboard");
         } catch (err: any) {
           if (axios.isAxiosError(err) && err.response) {
             if (err.response.status === 401) {
@@ -111,14 +104,20 @@ export default function LogIn() {
           const tokenResponse = await axios.post(
             `http://${backendURL}/generate-token`,
             {
-              username: userName,
+              username: email,
               password: password,
             }
           );
           const accessToken = tokenResponse.headers.authorization; // or response.headers['authorization']
+
+          // Since we're calling a filter endpoint, no controler was made for this endpoint so we didnt
+          // return a user response DTO meaning i dont have the user's displayed name in the response,
+          // so other call might be needed
+
           // Store it somewhere (localStorage, state, context, etc.)
           console.log("HEADERS:\n\n" + tokenResponse.headers);
           localStorage.setItem("accessToken", accessToken);
+
           console.log(localStorage);
           navigate("/app/dashboard");
         } else {
@@ -151,13 +150,25 @@ export default function LogIn() {
   };
 
   return (
-    <div className="w-full poppins-font relative">
+    <div
+      className="w-full poppins-font relative"
+      style={{
+        marginTop: isLogin ? "100px" : "0px",
+      }}
+    >
       <div className="relative">
         <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 rounded-2xl blur-xl opacity-75 animate-pulse"></div>
 
         <div className="relative bg-black rounded-2xl p-8 border border-purple-500/30">
           <div className="text-center mb-8 flex flex-col justify-center items-center">
-            <h1 className="text-[50px] font-bold text-white">Trip Slice</h1>
+            <div className="flex gap-[15px] w-full justify-center">
+              <h1 className="text-[50px] font-bold text-white ">Trip Slice</h1>{" "}
+              <img
+                src="/montage-icon-white.png"
+                className="hidden sm:block sm:w-[15%] md:w-[11%]"
+                alt=""
+              />
+            </div>
             <p className="text-white text-sm">
               {isLogin ? "Welcome back" : "Create your account"}
             </p>
@@ -224,30 +235,32 @@ export default function LogIn() {
               )}
             </div>
 
-            <div>
-              <label className="block text-gray-300 text-sm font-medium mb-2">
-                Name
-              </label>
-              <input
-                type="text"
-                value={userName}
-                onChange={(e) => {
-                  setUserName(e.target.value);
-                  clearFieldError("userName");
-                }}
-                className={`w-full px-4 py-3 bg-gray-800/50 border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 transition-all ${
-                  fieldErrors.userName
-                    ? "border-red-500/50 focus:border-red-500 focus:ring-red-500/20"
-                    : "border-purple-500/30 focus:border-purple-500 focus:ring-purple-500/20"
-                }`}
-                placeholder="Goofy name here"
-              />
-              {fieldErrors.userName && (
-                <p className="text-red-400 text-sm mt-1">
-                  {fieldErrors.userName}
-                </p>
-              )}
-            </div>
+            {isLogin ? null : (
+              <div>
+                <label className="block text-gray-300 text-sm font-medium mb-2">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  value={userName}
+                  onChange={(e) => {
+                    setUserName(e.target.value);
+                    clearFieldError("userName");
+                  }}
+                  className={`w-full px-4 py-3 bg-gray-800/50 border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 transition-all ${
+                    fieldErrors.userName
+                      ? "border-red-500/50 focus:border-red-500 focus:ring-red-500/20"
+                      : "border-purple-500/30 focus:border-purple-500 focus:ring-purple-500/20"
+                  }`}
+                  placeholder="Goofy name here"
+                />
+                {fieldErrors.userName && (
+                  <p className="text-red-400 text-sm mt-1">
+                    {fieldErrors.userName}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div>
               <label className="block text-gray-300 text-sm font-medium mb-2">

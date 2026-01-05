@@ -1,5 +1,6 @@
 package com.umerqureshicodes.tidier.videos;
 
+import com.umerqureshicodes.tidier.montages.Montage;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,8 +18,8 @@ public interface VideoRepo extends JpaRepository<Video, Long> {
     )
     List<Video> findAllByVideoIds(@Param("videoIds") List<String> ids);
 
-    List<Video> findAllByUserEmail(String email);
+    List<Video> findAllByUserUsername(String username);
 
-    Optional<Video> findByUserEmailAndName(String email, String name);
+    Optional<Video> findByUserUsernameAndName(String email, String name);
 
 }

@@ -21,7 +21,7 @@ public class VideoController {
     @Cacheable(value = "videos", cacheManager = "cacheManager") // Looks under key named videos
     public List<VideoResponseDTO> getAllVideos(@AuthenticationPrincipal AppUser user) {
         // user is the one from JWT
-        String email = user.getEmail();
+        String email = user.getUsername();
         return videoService.getVideos(email);
     }
 
@@ -31,7 +31,7 @@ public class VideoController {
             @AuthenticationPrincipal AppUser user,
             @RequestParam("files") List<MultipartFile> multipartFiles
     ) {
-        String email = user.getEmail();   // pulled from JWT-authenticated user
+        String email = user.getUsername();   // pulled from JWT-authenticated user
         return videoService.save(multipartFiles, email);
     }
 

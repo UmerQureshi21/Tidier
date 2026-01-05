@@ -21,7 +21,7 @@ public class AppUser implements UserDetails {
 
     private String username; // email is better, but username is fine
 
-    private String email;
+    private String displayedName;
 
     private String passwordHash;
 
@@ -37,15 +37,23 @@ public class AppUser implements UserDetails {
 
     public AppUser() {}
 
-    public AppUser(String username, String email, String passwordHash) {
+    public AppUser(String username, String passwordHash, String displayedName) {
         this.username = username;
-        this.email = email;
         this.passwordHash = passwordHash;
+        this.displayedName = displayedName;
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(); // add roles later
+    }
+
+    public String getDisplayedName() {
+        return displayedName;
+    }
+
+    public void setDisplayedName(String displayedName) {
+        this.displayedName = displayedName;
     }
 
     @Override
@@ -56,10 +64,6 @@ public class AppUser implements UserDetails {
     @Override
     public String getUsername() {
         return username;
-    }
-
-    public String getEmail() {
-        return email;
     }
 
     // required by UserDetails

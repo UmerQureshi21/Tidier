@@ -18,7 +18,7 @@ public class MontageController {
     @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @PostMapping("/montages")
     public MontageResponseDTO createMontage(@RequestBody MontageRequestDTO montageRequestDTO, @AuthenticationPrincipal AppUser appUser) {
-        return montageService.createMontage(montageRequestDTO, appUser.getEmail());
+        return montageService.createMontage(montageRequestDTO, appUser.getUsername());
     }
 
     @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
@@ -31,6 +31,6 @@ public class MontageController {
     @GetMapping("/montages")
     @Cacheable(value = "montages", cacheManager = "cacheManager") // Looks under key named montages
     public List<MontageResponseDTO> getUrl(@AuthenticationPrincipal AppUser user){
-        return montageService.getMontages(user.getEmail());
+        return montageService.getMontages(user.getUsername());
     }
 }
