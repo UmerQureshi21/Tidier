@@ -66,21 +66,24 @@ export default function Header({ height }: props) {
         </div>
       )}
 
-      <h1
+     { windowWidth >= MEDIUM_WIDTH_SIZE ? (<img src="/trip-slice-logo-gradient.png" className="absolute z-[50] top-[40px] w-[40%] left-[30%] lg:w-[25%] lg:left-[37.5%]" alt="" 
+     
+     />) :
+      (<h1
         className="absolute z-[50] poppins-font top-[40px] left-[20px] md:top-[80px] 
-                     md:left-1/2 md:-translate-x-1/2 text-[30px] md:text-[120px] md:font-bold 
+                     md:left-1/2 md:-translate-x-1/2 text-[40px] md:text-[120px] md:font-bold 
                      text-white md:bg-gradient-to-r md:from-purple-400 md:via-white 
                      md:via-purple-600 md:to-blue-500 md:bg-clip-text md:text-transparent 
                      md:animate-[gradient_5s_ease-in-out_infinite] md:bg-[length:300%_auto]"
       >
-        Tidier
-      </h1>
+        TripSlice
+      </h1>)}
       <h1
-        className="absolute w-[80%]  font-thin top-[100px] md:top-[220px] left-[20px] 
+        className="absolute w-[85%]  font-thin top-[100px] md:top-[270px] left-[20px] 
                z-[50] text-white text-[25px] poppins-font md:left-1/2 md:-translate-x-1/2 md:text-center md:w-auto"
       >
         Your AI-powered
-        <span className="font-normal ml-[5px]">Vacation Montage </span>Maker
+        <span className="font-normal ml-[5px] ">Vacation Montage </span>Maker
       </h1>
 
       <div className="absolute top-0 left-0 right-0 bottom-0 bg-gradient-to-b from-[rgb(5,5,5)] to-transparent"></div>

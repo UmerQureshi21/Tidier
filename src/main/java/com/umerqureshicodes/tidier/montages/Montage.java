@@ -2,6 +2,7 @@ package com.umerqureshicodes.tidier.montages;
 
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+import com.umerqureshicodes.tidier.users.AppUser;
 import com.umerqureshicodes.tidier.videos.Video;
 import jakarta.persistence.*;
 
@@ -29,6 +30,9 @@ public class Montage {
     private List<Video> videos = new ArrayList<>();
     private String prompt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private AppUser user;
 
     public Montage() {
 
@@ -39,9 +43,10 @@ public class Montage {
         this.videos.addAll(videos);
     }
 
-    public Montage(String name, String prompt) {
+    public Montage(String name, String prompt, AppUser user) {
         this.name = name;
         this.prompt = prompt;
+        this.user = user;
     }
 
     public String getName() {

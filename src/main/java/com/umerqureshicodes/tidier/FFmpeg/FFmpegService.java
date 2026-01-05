@@ -3,6 +3,7 @@ package com.umerqureshicodes.tidier.FFmpeg;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
@@ -81,5 +82,35 @@ public class FFmpegService {
         }
         return process.waitFor();
     }
+
+    public double checkDuration(File file) throws IOException, InterruptedException {
+
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                "ffprobe",
+                "-v", "error",
+                "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1",
+                file.getAbsolutePath()
+        );
+
+        processBuilder.redirectErrorStream(true);
+
+        Process process = processBuilder.start();
+
+        // Read ffprobe output
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(process.getInputStream()))) {
+
+            String durationStr = reader.readLine();
+            int exitCode = process.waitFor();
+
+            if (exitCode != 0 || durationStr == null) {
+                throw new IOException("Failed to read video duration");
+            }
+
+            return Double.parseDouble(durationStr.trim());
+        }
+    }
+
 }
 
