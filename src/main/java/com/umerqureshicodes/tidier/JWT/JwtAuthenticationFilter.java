@@ -66,7 +66,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // We can also send it in response body but then client has to store in memory or in local storage
             Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
             refreshCookie.setHttpOnly(true); // prevent javascript from accessing
-                refreshCookie.setSecure(true); // sent only over https
+                boolean isLocalhost = request.getServerName().equals("localhost") ||
+                        request.getServerName().equals("127.0.0.1");
+                refreshCookie.setSecure(!isLocalhost);
                 refreshCookie.setPath("/refresh-token"); // Cookie available only for refresh endpoint
                 refreshCookie .setMaxAge(7*24*60*60);
                 response.addCookie(refreshCookie);

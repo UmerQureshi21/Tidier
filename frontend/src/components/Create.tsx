@@ -1,23 +1,16 @@
 import { useEffect, useState } from "react";
 import type {
   VideoRequestDTO,
-  MontageRequestDTO,
   MontageResponseDTO,
 } from "../Types";
-import axios from "axios";
 import SelectableFileDetails from "./VideoDetailsSelectable";
 import MontageProgressWebSocket from "./MontageProcessWebSocket";
 import FinishedMontage from "./FinishedMontage";
-
-// Cache variables (persist across component mounts)
-let cachedVideos: VideoRequestDTO[] | null = null;
-let cacheTime: number = 0;
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
-const token = localStorage.getItem("accessToken");
+import { getAllVideos } from "../services/videoService";
+import { createMontage } from "../services/montageService";
 
 
 export default function UploadCopy() {
-  const backendURL = import.meta.env.VITE_BACKEND_URL;
   let [montageSubmitted, isMontageSubmitted] = useState<boolean>(false);
   let [montageFinished, isMontageFinished] = useState<boolean>(false);
   let [prevFiles, setPrevFiles] = useState<VideoRequestDTO[]>([]);
@@ -27,93 +20,40 @@ export default function UploadCopy() {
   const [preSignedUrl, setPreSignedUrl] = useState<string>("");
   const [montageName, setMontageName] = useState<string>("");
 
-  async function getAllFiles() {
+  async function loadVideos() {
     try {
-      const now = Date.now();
-
-      // Check if cache exists and is still valid
-      if (cachedVideos && now - cacheTime < CACHE_DURATION) {
-        console.log("Using cached videos");
-        setPrevFiles(cachedVideos);
-        return;
-      }
-
-      // Fetch new data
-      console.log("Fetching fresh videos from API");
-      console.log("TOKEN: " + token);
-      const res = await axios.get(`http://${backendURL}/videos`, {
-        headers: {
-          Authorization: token,
-        },
-      });
-      const data = res.data;
-
-      let fileDetails = [];
-
-      for (let file of data) {
-        fileDetails.push(file);
-        console.log(file.previewUrl);
-      }
-
-      setPrevFiles(fileDetails);
-
-      // Store in cache
-      cachedVideos = fileDetails;
-      cacheTime = now;
+      const videos = await getAllVideos();
+      setPrevFiles(videos);
     } catch (err) {
-      console.error("Upload failed bro:", err);
+      console.error("Error loading videos:", err);
     }
   }
 
   async function handleSubmit() {
-    let videos: VideoRequestDTO[] = [];
-    for (let i = 0; i < clicks.length; i++) {
-      if (clicks[i]) {
-        videos.push(prevFiles[i]);
-      }
-    }
-
-    let request: MontageRequestDTO = {
-      name: title,
-      videoRequestDTOs: videos,
-      prompt: sentence,
-      sentence: `Give all time intervals of ${sentence}, only tell me the intervals, nothing else, and in this format: 00:00-00:06, 01:02-01:09, ... If there are no such time intervals, only return 00:00-00:00`,
-    };
-
-    // Find timestamps containing FOOD-related visuals in a STREET environment at NIGHT.
-
     try {
       isMontageSubmitted(true);
-      console.log("TOKEN: " +token)
-      const res = await axios.post(`http://${backendURL}/montages`, request,  {
-        headers: {
-          Authorization: token,
-        },
-      });
-      let data: MontageResponseDTO = res.data;
-      setPreSignedUrl(data.preSignedUrl);
-      setMontageName(data.name);
+      let montageData: MontageResponseDTO = await createMontage(
+        prevFiles,
+        clicks,
+        title,
+        sentence
+      );
+      setPreSignedUrl(montageData.preSignedUrl);
+      setMontageName(montageData.name);
       isMontageFinished(true);
-      console.log(data);
     } catch (err) {
       console.error("Montage upload failed my bro:", err);
     }
-
-    // console.log(request);
   }
 
   const handleToggleSelect = (index: number) => {
     const newClicks = [...clicks];
     newClicks[index] = !newClicks[index];
     setClicks(newClicks);
-
-    // Log selected videos
-    const selectedVideos = prevFiles.filter((_, i) => newClicks[i]);
-    console.log("Selected videos:", selectedVideos);
   };
 
   useEffect(() => {
-    getAllFiles();
+    loadVideos();
     setClicks(new Array(prevFiles.length).fill(false));
   }, []);
 
