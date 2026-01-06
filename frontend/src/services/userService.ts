@@ -21,10 +21,13 @@ export async function logInOrSignUp(
       console.log("LOGIN REQUEST:", request);
 
       const tokenResponse = await axios.post(
-        `http://${backendURL}/generate-token`,
+        `${backendURL}/generate-token`,
         {
           username: email,
           password: password,
+        },
+        {
+          withCredentials: true, // Send/receive cookies
         }
       );
       // If we reach here, login was successful
@@ -48,15 +51,18 @@ export async function logInOrSignUp(
     }
   } else {
     console.log("REGISTER REQUEST:", request);
-    const response = await axios.post(`http://${backendURL}/register`, request);
+    const response = await axios.post(`${backendURL}/register`, request);
     console.log("REGISTER SUCCESS:", response.data);
 
     if (response.data["username"] != null) {
       const tokenResponse = await axios.post(
-        `http://${backendURL}/generate-token`,
+        `${backendURL}/generate-token`,
         {
           username: email,
           password: password,
+        },
+        {
+          withCredentials: true, // Send/receive cookies
         }
       );
       const accessToken = tokenResponse.headers.authorization; // or response.headers['authorization']
