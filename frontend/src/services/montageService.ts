@@ -1,4 +1,4 @@
-import axios from "axios";
+import axiosInstance from "./refreshTokenAxios";
 import type {
   MontageRequestDTO,
   MontageResponseDTO,
@@ -10,8 +10,6 @@ const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 let cachedVideos: MontageResponseDTO[] | null = null;
 let cacheTime: number = 0;
 
-const backendURL = import.meta.env.VITE_BACKEND_URL;
-const getToken = () => localStorage.getItem("accessToken");
 
 export async function createMontage(
   files: VideoRequestDTO[],
@@ -35,12 +33,10 @@ export async function createMontage(
 
   // Find timestamps containing FOOD-related visuals in a STREET environment at NIGHT.
 
-  const token = getToken();
-  const res = await axios.post(`http://${backendURL}/montages`, request, {
-    headers: {
-      Authorization: token,
-    },
-  });
+  const res = await axiosInstance.post(
+    `/montages`,
+    request
+  );
   let data: MontageResponseDTO = res.data;
   return data;
 }
@@ -48,7 +44,6 @@ export async function createMontage(
 export async function getAllMontages(): Promise<MontageResponseDTO[]> {
   try {
     const now = Date.now();
-    const token = getToken();
 
     // Check if cache exists and is still valid
     if (cachedVideos && now - cacheTime < CACHE_DURATION) {
@@ -58,13 +53,8 @@ export async function getAllMontages(): Promise<MontageResponseDTO[]> {
 
     // Fetch new data
     console.log("Fetching fresh videos from API");
-    console.log("TOKEN: " + token);
 
-    const res = await axios.get(`http://${backendURL}/montages`, {
-      headers: {
-        Authorization: token,
-      },
-    });
+    const res = await axiosInstance.get(`/montages`);
 
     const fileDetails = res.data;
 
