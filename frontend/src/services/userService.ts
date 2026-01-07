@@ -1,4 +1,5 @@
 import axios from "axios";
+import { tokenManager } from "./tokenManager";
 import type { UserRequestDTO } from "../Types";
 
 const backendURL = import.meta.env.VITE_BACKEND_URL;
@@ -30,15 +31,14 @@ export async function logInOrSignUp(
           withCredentials: true, // Send/receive cookies
         }
       );
-      // If we reach here, login was successful
-      // console.log("LOGIN SUCCESS: \n\n " + tokenResponse);
+      
+      // Extract and store access token in memory
       const accessToken = tokenResponse.headers.authorization;
-      localStorage.setItem("accessToken", accessToken);
-      console.log("ACCESS TOKEN: " + localStorage.getItem("accessToken"));
+      tokenManager.setToken(accessToken);
+      console.log("ACCESS TOKEN SET IN MEMORY");
     } catch (err: any) {
       if (axios.isAxiosError(err) && err.response) {
         if (err.response.status === 401) {
-          // invalid username/password
           errorMessage = "Invalid username or password.";
         } else {
           errorMessage = `Server error: ${err.response.status}`;
@@ -62,34 +62,44 @@ export async function logInOrSignUp(
           password: password,
         },
         {
-          withCredentials: true, // Send/receive cookies
+          withCredentials: true,
         }
       );
-      const accessToken = tokenResponse.headers.authorization; // or response.headers['authorization']
-
-      // Since we're calling a filter endpoint, no controler was made for this endpoint so we didnt
-      // return a user response DTO meaning i dont have the user's displayed name in the response,
-      // so other call might be needed
-
-      // Store it somewhere (localStorage, state, context, etc.)
-      console.log("HEADERS:\n\n" + tokenResponse.headers);
-      localStorage.setItem("accessToken", accessToken);
-
-      console.log(localStorage);
+      
+      // Extract and store access token in memory
+      const accessToken = tokenResponse.headers.authorization;
+      tokenManager.setToken(accessToken);
+      console.log("ACCESS TOKEN SET IN MEMORY AFTER SIGNUP");
     } else {
       errorMessage = "email or username already used";
     }
-
-    /**
-         * Refresh Token (in response cookie):
-           The refresh token comes back as an HttpOnly cookie. 
-           The browser automatically stores it in cookies because it's marked as HttpOnly. 
-           You don't need to do anything—the browser handles it automatically.
-
-          On subsequent requests:
-          Include the access token manually in the header: Authorization: Bearer <token>
-          The browser automatically includes the refresh token cookie
-         */
   }
+  
   return errorMessage;
+}
+
+// New function to restore session on app startup
+export async function restoreSession(): Promise<boolean> {
+  try {
+    const tokenResponse = await axios.post(
+      `${backendURL}/refresh-token`,
+      {},
+      { withCredentials: true } // Sends refresh token cookie
+    );
+
+    const accessToken = tokenResponse.headers.authorization;
+    if (accessToken) {
+      tokenManager.setToken(accessToken);
+      console.log("SESSION RESTORED FROM REFRESH TOKEN");
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.log("Failed to restore session:", err);
+    return false;
+  }
+}
+
+export function logout(): void {
+  tokenManager.clearToken();
 }

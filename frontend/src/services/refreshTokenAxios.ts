@@ -1,4 +1,5 @@
 import axios from "axios";
+import { tokenManager } from "./tokenManager";
 
 const backendURL = import.meta.env.VITE_BACKEND_URL;
 
@@ -9,14 +10,14 @@ const axiosInstance = axios.create({
 
 // Add token to every request
 axiosInstance.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
+  const token = tokenManager.getToken();
   if (token) {
     config.headers.Authorization = token;
   }
   return config;
 });
 
-// Handle 403 errors which means bad credentials - refresh token and retry
+// Handle 401/403 errors - refresh token and retry
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -39,14 +40,14 @@ axiosInstance.interceptors.response.use(
 
         // Get new access token from response header
         const newToken = refreshResponse.headers.authorization;
-        localStorage.setItem("accessToken", newToken);
+        tokenManager.setToken(newToken);
 
         // Retry original request with new token
         originalRequest.headers.Authorization = newToken;
         return axiosInstance(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, redirect to login
-        localStorage.removeItem("accessToken");
+        // Refresh failed, clear token and redirect to login
+        tokenManager.clearToken();
         window.location.href = "/login";
         return Promise.reject(refreshError);
       }
