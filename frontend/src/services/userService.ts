@@ -103,3 +103,4 @@ export async function restoreSession(): Promise<boolean> {
 export function logout(): void {
   tokenManager.clearToken();
 }
+

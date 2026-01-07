@@ -23,7 +23,7 @@ export default function HomePage() {
   return (
     <div className="bg-black">
       <div>
-        <Header height={600} />
+        <Header height={600} isHome={true} />
       </div>
 
       <div className="w-full relative poppins-font">
