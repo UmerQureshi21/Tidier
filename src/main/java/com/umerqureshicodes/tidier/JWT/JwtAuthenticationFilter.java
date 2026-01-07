@@ -57,12 +57,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 
             if(authResult.isAuthenticated()) {
-            String token = jwtUtil.generateToken(authResult.getName(), 15);
+            String token = jwtUtil.generateToken(authResult.getName(), 1);
                 System.out.println("Access token generated: " + token);
                 response.setHeader("Authorization", "Bearer " + token) ;
 
             String refreshToken = jwtUtil.generateToken(authResult.getName(), 7*24*60);
-            // Set refresh token in HttpOnly Cookie
+
+                // Set refresh token in HttpOnly Cookie
             // We can also send it in response body but then client has to store in memory or in local storage
             Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
             refreshCookie.setHttpOnly(true); // prevent javascript from accessing
@@ -71,6 +72,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 refreshCookie.setSecure(!isLocalhost);
                 refreshCookie.setPath("/refresh-token"); // Cookie available only for refresh endpoint
                 refreshCookie .setMaxAge(7*24*60*60);
+
                 response.addCookie(refreshCookie);
             }
 
