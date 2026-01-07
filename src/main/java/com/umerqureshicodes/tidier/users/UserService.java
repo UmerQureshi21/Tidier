@@ -57,6 +57,15 @@ public class UserService implements UserDetailsService {
         }
         return true;
     }
+
+    public UserResponseDTO getUser(String email) {
+        Optional<AppUser> user = userRepo.findByUsername(email);
+        if(user.isPresent()) {
+            return new UserResponseDTO(user.get().getUsername(),user.get().getDisplayedName());
+        }
+        return null;
+    }
+
     @Override
     public AppUser loadUserByUsername(String username) throws UsernameNotFoundException {
         return userRepo.findByUsername(username)
