@@ -5,6 +5,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -33,4 +34,18 @@ public class MontageController {
     public List<MontageResponseDTO> getUrl(@AuthenticationPrincipal AppUser user){
         return montageService.getMontages(user.getUsername());
     }
+
+//    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
+//    @GetMapping("/montages/most-vids")
+//    @Cacheable(value = "mostVids", cacheManager = "cacheManager") // Looks under key named montages
+//    public MontageResponseDTO getMostVideoMontage(@AuthenticationPrincipal AppUser user){
+//        return montageService.getMostVideoMontage(user.getUsername());
+//    }
+//
+//    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
+//    @GetMapping("/montages/longest")
+//    @Cacheable(value = "longest", cacheManager = "cacheManager") // Looks under key named montages
+//    public MontageResponseDTO getLongestMontage(@AuthenticationPrincipal AppUser user) throws IOException, InterruptedException {
+//        return montageService.getLongestMontage(user.getUsername());
+//    }
 }

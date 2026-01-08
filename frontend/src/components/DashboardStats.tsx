@@ -16,11 +16,11 @@ export default function DashboardStats() {
     const fetchStats = async () => {
       try {
         // Fetch all videos
-        // const videosRes = await axiosInstance.get("/videos");
-        // setVideoCount(videosRes.data.length);
+        const videosRes = await axiosInstance.get("/videos");
+        setVideoCount(videosRes.data.length);
         // Fetch all montages
-        // const montagesRes = await axiosInstance.get("/montages");
-        // setMontageCount(montagesRes.data.length);
+        const montagesRes = await axiosInstance.get("/montages");
+        setMontageCount(montagesRes.data.length);
         // Get 3 most recent montages (assuming they're sorted by date)
         // setRecentMontages(montagesRes.data.slice(0, 3));
       } catch (err) {
@@ -43,11 +43,11 @@ export default function DashboardStats() {
       <div className="grid grid-cols-2 gap-6 mb-12">
         <div className="bg-gradient-to-br from-[#111] to-[#111] p-6 rounded-lg">
           <p className="text-gray-300 text-sm mb-2">Total Videos</p>
-          <p className="text-4xl font-bold">{videoCount}</p>
+          <p className="text-4xl font-thin">{videoCount}</p>
         </div>
         <div className="bg-gradient-to-br from-[#111] to-[#111] p-6 rounded-lg">
           <p className="text-gray-300 text-sm mb-2">Total Montages</p>
-          <p className="text-4xl font-bold">{montageCount}</p>
+          <p className="text-4xl font-thin">{montageCount}</p>
         </div>
       </div>
 
@@ -56,7 +56,7 @@ export default function DashboardStats() {
         <h1 className=" text-[30px] font-normal">Ready to Create?</h1>
         <button
           onClick={() => navigate("/app/create")}
-          className="w-[100%] bg-[#925cfe] hover:bg-[#7a4dd1] text-white text-[30px] font-normal h-[80px]  rounded-lg transition"
+          className="w-[100%] bg-[#925cfe] hover:bg-[#7a4dd1] text-white text-[30px] font-bold h-[80px]  rounded-lg transition"
         >
           Create Montage!
         </button>

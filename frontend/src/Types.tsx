@@ -15,6 +15,8 @@ export type MontageResponseDTO = {
   name: string;
   preSignedUrl: string;
   prompt: string;
+  createdAt: Date;
+  duration: number;
   videos: VideoRequestDTO[];
 };
 

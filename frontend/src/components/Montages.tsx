@@ -9,6 +9,7 @@ export default function Montages() {
   async function getMontages() {
     try {
       const videos = await getAllMontages();
+
       setMontages(videos);
     } catch (err) {
       console.error("Error loading videos:", err);
@@ -21,17 +22,27 @@ export default function Montages() {
 
   return (
     <div className="w-full bg-black flex justify-center pb-[100px]">
-      <div className="bg-[rgb(20,20,20)] w-[95%] min-h-[800px] overflow-y-scroll rounded-[10px] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-        {montages?.map((montage, index) => (
-          <MontageDetails
-            key={`montage ${index}`}
-            title={montage.name}
-            topic={montage.prompt}
-            photos={montage.videos.map((video, vi) => video.previewUrl)}
-            videoSrc={montage.preSignedUrl}
-          />
-        ))}
-      </div>
+      {montages.length > 0 ? (
+        <div className="bg-[rgb(20,20,20)] w-[95%] min-h-[800px] overflow-y-scroll rounded-[10px] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+          {montages?.map((montage, index) => (
+            <MontageDetails
+              key={`montage ${index}`}
+              title={montage.name}
+              topic={montage.prompt}
+              createdAt={montage.createdAt}
+              duration={montage.duration}
+              photos={montage.videos.map((video, vi) => video.previewUrl)}
+              videoSrc={montage.preSignedUrl}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-white min-h-screen mt-[100px] poppins-font sm:text-[40px] text-[30px] w-[95%] sm:w-[50%] text-center">
+          No montages have been made yet. Go on the{" "}
+          <span className="text-[#925cfe]">Create Montage</span> page to relive
+          your first vacation!
+        </div>
+      )}
     </div>
   );
 }
