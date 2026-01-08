@@ -78,10 +78,10 @@ export default function Upload() {
               ))}
             </div>
           ) : (
-            <div className="text-white min-h-screen mt-[100px] poppins-font text-[40px] w-[50%] text-center">
-              No videos have been uploaded yet. Click on the {" "}
-              <span className="text-[#925cfe]">Upload</span> page to
-              upload videos that you can use later!
+            <div className=" text-white min-h-screen mt-[100px] poppins-font w-[95%] text-[25px] sm:text-[40px] sm:w-[50%] text-center">
+              No videos have been uploaded yet. Click on the{" "}
+              <span className="text-[#925cfe]">{" "}Upload</span> button to upload
+              videos that you can use later!
             </div>
           )}
         </div>
