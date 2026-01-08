@@ -209,7 +209,7 @@ export default function UploadCopy() {
               ))}
             </div>
           ) : (
-            <div className="text-white min-h-screen mt-[100px] poppins-font text-[40px] w-[50%] text-center">
+            <div className="text-white min-h-screen mt-[100px] poppins-font sm:text-[40px] text-[30px] w-[95%] sm:w-[50%] text-center">
               No videos have been uploaded yet. Go on the{" "}
               <span className="text-[#925cfe]">Video Library</span> page to
               upload videos that you can use later!
