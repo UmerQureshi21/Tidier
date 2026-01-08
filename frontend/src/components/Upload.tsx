@@ -9,6 +9,7 @@ import {
 
 export default function Upload() {
   const [prevFiles, setPrevFiles] = useState<VideoRequestDTO[]>([]);
+  const [exceededUploads, setExceededUploads] = useState<boolean>(false);
 
   async function loadVideos() {
     try {
@@ -26,9 +27,14 @@ export default function Upload() {
   async function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files) {
       try {
-        await uploadVideos(e.target.files);
-        clearVideoCache(); // Clear cache so fresh data is fetched
-        await loadVideos();
+        if (e.target.files.length <= 5) {
+          setExceededUploads(false);
+          await uploadVideos(e.target.files);
+          clearVideoCache(); // Clear cache so fresh data is fetched
+          await loadVideos();
+        } else {
+          setExceededUploads(true);
+        }
       } catch (err) {
         console.error("Error uploading videos:", err);
       }
@@ -54,6 +60,11 @@ export default function Upload() {
             />
             Upload Videos
           </button>
+          {exceededUploads ? (
+            <h1 className="py-[15px] text-red-500 font-bold w-full text-center">
+              Can only upload up to 5 videos at a time.
+            </h1>
+          ) : null}
         </div>
         <div className="text-white poppins w-[90%] flex flex-col items-center justify-center">
           <div className="flex flex-col items-center w-full "></div>
@@ -80,7 +91,7 @@ export default function Upload() {
           ) : (
             <div className=" text-white min-h-screen mt-[100px] poppins-font w-[95%] text-[25px] sm:text-[40px] sm:w-[50%] text-center">
               No videos have been uploaded yet. Click on the{" "}
-              <span className="text-[#925cfe]">{" "}Upload</span> button to upload
+              <span className="text-[#925cfe]"> Upload</span> button to upload
               videos that you can use later!
             </div>
           )}
