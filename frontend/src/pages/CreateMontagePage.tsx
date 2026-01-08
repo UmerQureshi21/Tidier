@@ -2,7 +2,7 @@ import UploadCopy from "../components/Create";
 
 export default function CreateMontagePage() {
   return (
-    <div>
+    <div className="">
       <UploadCopy/>
     </div>
   );

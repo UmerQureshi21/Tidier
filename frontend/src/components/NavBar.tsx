@@ -36,10 +36,10 @@ export default function Navbar() {
       page: "/montages",
       text: "Montage Library",
     },
-    {
-      page: "/account",
-      text: "Account",
-    },
+    // {
+    //   page: "/account",
+    //   text: "Account",
+    // },
   ];
 
   return (

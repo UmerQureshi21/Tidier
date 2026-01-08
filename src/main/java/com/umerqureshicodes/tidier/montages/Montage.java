@@ -5,8 +5,10 @@ import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.umerqureshicodes.tidier.users.AppUser;
 import com.umerqureshicodes.tidier.videos.Video;
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -18,7 +20,7 @@ import java.util.List;
 public class Montage {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "montageSeqGen")
-    @SequenceGenerator(name = "montageSeq", sequenceName = "montageSeq", allocationSize = 1)
+    @SequenceGenerator(name = "montageSeqGen", sequenceName = "montageSeq", allocationSize = 1)
     private Long id;
     private String name;
     @ManyToMany
@@ -29,7 +31,11 @@ public class Montage {
     )
     private List<Video> videos = new ArrayList<>();
     private String prompt;
+    private int duration;
 
+    @CreationTimestamp
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date createdAt;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private AppUser user;
@@ -37,16 +43,31 @@ public class Montage {
     public Montage() {
 
     }
-    public Montage(String name, String prompt, List<Video> videos) {
+    public Montage(String name, String prompt, List<Video> videos, int duration, AppUser user) {
         this.name = name;
         this.prompt = prompt;
         this.videos.addAll(videos);
+        this.duration = duration;
+        this.user = user;
     }
 
-    public Montage(String name, String prompt, AppUser user) {
+    public Montage(String name, String prompt, AppUser user, int duration) {
         this.name = name;
         this.prompt = prompt;
         this.user = user;
+        this.duration = duration;
+    }
+
+    public int getDuration() {
+        return duration;
+    }
+
+    public void setDuration(int duration) {
+        this.duration = duration;
+    }
+
+    public Date getCreatedAt() {
+        return createdAt;
     }
 
     public String getName() {

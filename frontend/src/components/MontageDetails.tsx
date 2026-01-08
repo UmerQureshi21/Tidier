@@ -3,11 +3,15 @@ import { useState } from "react";
 export default function MontageDetails({
   title,
   topic,
+  createdAt,
+  duration,
   photos,
   videoSrc,
 }: {
   title: string;
   topic: string;
+  createdAt: Date | null;
+  duration: number;
   photos: string[];
   videoSrc: string;
 }) {
@@ -38,10 +42,9 @@ export default function MontageDetails({
               <span className="font-bold">Topic: </span>
               {topic}
             </p>
-
             {/* Video Section */}
             <div
-              className="w-full h-[400px] bg-[#111] rounded-lg overflow-hidden mb-4"
+              className="w-full h-[180px] sm:h-[400px] bg-[#111] rounded-lg overflow-hidden mb-4"
               onMouseEnter={() => setIsVideoHovering(true)}
               onMouseLeave={() => setIsVideoHovering(false)}
             >
@@ -53,6 +56,15 @@ export default function MontageDetails({
                 autoPlay={isVideoHovering}
                 className="w-full h-48 md:h-[400px] object-cover"
               />
+            </div>
+            <div className=" text-white flex flex-col justify-between poppins-font">
+              <h1>Time: {duration}</h1>
+              <h1>
+                Created On:{" "}
+                {createdAt
+                  ? new Date(createdAt).toISOString().split("T")[0]
+                  : ""}
+              </h1>
             </div>
           </div>
 
@@ -67,8 +79,7 @@ export default function MontageDetails({
             `}
           >
             <div className="border-t-2 border-[#fff] border-opacity-20 pt-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3"
-              >
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {photos?.map((photo, idx) => (
                   <video
                     key={idx}

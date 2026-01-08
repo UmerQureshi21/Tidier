@@ -25,7 +25,7 @@ export default function FinishedMontage({
 
   return (
     <>
-      <div className="relative w-full bg-black h-[60px] flex items-center justify-center prompt-section">
+      <div className="relative  w-full bg-black h-[60px] flex items-center justify-center prompt-section">
         <h1 className="w-[70%] text-[white] text-[20px] text-center overflow-x-scroll whitespace-nowrap">
           {progressMessage}
         </h1>
