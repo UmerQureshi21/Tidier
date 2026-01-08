@@ -1,6 +1,8 @@
 import axios from "axios";
 import { tokenManager } from "./tokenManager";
 import type { UserRequestDTO } from "../Types";
+import { clearVideoCache } from "./videoService";
+import { clearMontageCache } from "./montageService";
 
 const backendURL = import.meta.env.VITE_BACKEND_URL;
 
@@ -31,7 +33,7 @@ export async function logInOrSignUp(
           withCredentials: true, // Send/receive cookies
         }
       );
-      
+
       // Extract and store access token in memory
       const accessToken = tokenResponse.headers.authorization;
       tokenManager.setToken(accessToken);
@@ -65,7 +67,7 @@ export async function logInOrSignUp(
           withCredentials: true,
         }
       );
-      
+
       // Extract and store access token in memory
       const accessToken = tokenResponse.headers.authorization;
       tokenManager.setToken(accessToken);
@@ -74,7 +76,7 @@ export async function logInOrSignUp(
       errorMessage = "email or username already used";
     }
   }
-  
+
   return errorMessage;
 }
 
@@ -102,5 +104,6 @@ export async function restoreSession(): Promise<boolean> {
 
 export function logout(): void {
   tokenManager.clearToken();
+  clearVideoCache();
+  clearMontageCache();
 }
-

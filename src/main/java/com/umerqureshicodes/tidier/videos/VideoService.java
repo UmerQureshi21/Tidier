@@ -71,8 +71,8 @@ public class VideoService {
 
                 double duration = ffmpegService.checkDuration(tempFile);
                 System.out.println("Duration: " + duration);
-                if(duration > 180){
-                    System.out.println("Duration exceeded, One or more videos have exceeded the maximum duration!");
+                if(duration > 180 || duration < 3){
+                    System.out.println("Invalid duration, your videos should be at least 3 seconds and no more than 3 minutes");
                     return null;
                 }
 
