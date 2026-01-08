@@ -33,6 +33,7 @@ public class MontageService {
     private final S3Service s3Service;
     private final TwelveLabsService twelveLabsService;
     private final SimpMessagingTemplate messagingTemplate;
+    int duration = 0;
     public MontageService(MontageRepo montageRepo, VideoService videoService, S3Service s3Service, TwelveLabsService twelveLabsService, SimpMessagingTemplate messagingTemplate, FFmpegService fFmpegService, UserRepo userRepo, VideoRepo videoRepo) {
         this.montageRepo = montageRepo;
         this.videoService = videoService;
@@ -54,16 +55,18 @@ public class MontageService {
         for (Video video: montage.getVideos()){
             videoResponseDTOs.add(new VideoResponseDTO(video.getVideoId(),video.getName()));
         }
-        return new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt(),montageUrl);
+        return new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt(), montage.getCreatedAt(), montage.getDuration(),montageUrl);
     }
 
     public MontageResponseDTO createMontage(MontageRequestDTO montageRequestDTO, String email) {
+        duration = 0; // Reset
         Optional<AppUser> user = userRepo.findByUsername(email) ;
         if(!user.isPresent()) {
             System.out.println("User not found");
             return null;
         }
-        Montage montage = new Montage(montageRequestDTO.name(),montageRequestDTO.prompt(), user.get());
+        System.out.println("final duration : "+duration);
+       Montage montage = new Montage(montageRequestDTO.name(),montageRequestDTO.prompt(), user.get(), 0);
        int ffmpegCode = combineVideos(trimVideos(analyzeVideoWithPrompt(montageRequestDTO),montageRequestDTO.videoRequestDTOs(),email),montageRequestDTO.name(),email);
        if(ffmpegCode == 0) {
            List<String> videoIds = new ArrayList<>();
@@ -77,6 +80,7 @@ public class MontageService {
            }
            // this can surely be put into one for loop
            montage.setVideos(videosInMontage);
+           montage.setDuration(duration);
            String preSignedUrl = s3Service.generatePresignedGetUrl("tidier",getS3Name(montageRequestDTO.name(),email) ).toString() ;
            notify(montageRequestDTO.name() +" created!", preSignedUrl);
            // add topic to send montage path to tsx component
@@ -93,17 +97,24 @@ public class MontageService {
     public List<String> analyzeVideoWithPrompt(MontageRequestDTO montageRequestDTO) {
         List<String> timestamps = new ArrayList<>();
         for(VideoRequestDTO v : montageRequestDTO.videoRequestDTOs()) {
-            TwelveLabsTimeStampResponse response = twelveLabsService.getIntervalsOfTopic(v.getVideoId(), montageRequestDTO.sentence());
-            if (response != null) {
-                timestamps.add(response.data());
-                notify("Successfully extracted " + montageRequestDTO.prompt() + " from " + v.getName(), null);
-            }
-//            timestamps.add("00:00-00:02"); // ONLY ADDING THIS BECAUSE I HIT RATE LIMIT
+//            TwelveLabsTimeStampResponse response = twelveLabsService.getIntervalsOfTopic(v.getVideoId(), montageRequestDTO.sentence());
+//            if (response != null) {
+//                timestamps.add(response.data());
+//                notify("Successfully extracted " + montageRequestDTO.prompt() + " from " + v.getName(), null);
+//            }
+            notify("Successfully extracted " + montageRequestDTO.prompt() + " from " + v.getName(), null);
+            timestamps.add("00:00-00:02"); // ONLY ADDING THIS BECAUSE I HIT RATE LIMIT
         }
         return timestamps;
     }
 
+    private int getIntervalDuration(String start, String end) {
+        return Integer.parseInt(end.split(":")[0]) * 60 + Integer.parseInt(end.split(":")[1])
+                - (Integer.parseInt(start.split(":")[0]) * 60 + Integer.parseInt(start.split(":")[1]));
+    }
+
     public List<String> trimVideos(List<String> timeStamps, List<VideoRequestDTO> videoRequestDTOs, String userEmail) {
+
         List<HashMap<String,String>> intervals = new ArrayList<>();
         List<String> trimmedVideosToCombine = new ArrayList<>();
         //timestamps in format of [[00:00-00:04, 00:04-00:08, 00:11-00:13],[00:01-00:03, 00:10-00:12]]
@@ -111,6 +122,8 @@ public class MontageService {
             for(String timeStamp : timeStamps.get(i).split(", ")) {
                     HashMap<String,String> interval = new HashMap<>();
                     String[] times = timeStamp.split("-");
+                    duration += this.getIntervalDuration(times[0],times[1]);
+                    System.out.println("duration: " + duration);
                     interval.put("start", "00:"+times[0]+".000");
                     interval.put("end", "00:"+times[1]+".000");
                     interval.put("video",videoRequestDTOs.get(i).getName());
@@ -194,7 +207,7 @@ public class MontageService {
                 videoResponseDTOs.add(new VideoResponseDTO(video.getName(),video.getVideoId(),videoPreviewUrl));
             }
             String preSignedUrl = s3Service.generatePresignedGetUrl("tidier",getS3Name(montage.getName(),userEmail)).toString();
-            montageResponseDTOs.add(new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt(),preSignedUrl));
+            montageResponseDTOs.add(new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt(),montage.getCreatedAt(),montage.getDuration(),preSignedUrl));
         }
         return montageResponseDTOs;
     }
@@ -240,4 +253,6 @@ public class MontageService {
 
         return tempFile;
     }
+
+
 }

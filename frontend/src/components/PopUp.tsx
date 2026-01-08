@@ -65,10 +65,10 @@ export default function PopUp() {
       page: "/create",
       text: "Create Montage",
     },
-    {
-      page: "/acccount",
-      text: "Account",
-    },
+    // {
+    //   page: "/acccount",
+    //   text: "Account",
+    // },
   ];
 
   return (
@@ -135,7 +135,7 @@ export default function PopUp() {
         {/* Footer accent */}
         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-center z-10">
           <div className="text-white/40 text-sm font-medium tracking-wider">
-            Tidier
+            Trip Slice
           </div>
         </div>
       </div>

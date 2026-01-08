@@ -53,7 +53,7 @@ function AppContent() {
         <Route path="create" element={<CreateMontagePage />} />
         <Route path="montages" element={<MontagePage />} />
         <Route path="videos" element={<VideoLibraryPage />} />
-        <Route path="account" element={<AccountPage />} />
+        {/* <Route path="account" element={<AccountPage />} /> */}
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />
