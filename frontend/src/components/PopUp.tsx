@@ -65,10 +65,10 @@ export default function PopUp() {
       page: "/create",
       text: "Create Montage",
     },
-    {
-      page: "/acccount",
-      text: "Account",
-    },
+    // {
+    //   page: "/acccount",
+    //   text: "Account",
+    // },
   ];
 
   return (

@@ -4,7 +4,7 @@ import Navbar from "../components/NavBar";
 
 export default function RootLayout() {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col bg-black">
       <Navbar />
       <div className="mt-[75px] relative">
         <Header height={200} isHome={false}/>

@@ -97,7 +97,7 @@ public class UserConfig {
                 .csrf(csrf -> csrf.disable())
                 .authenticationProvider(daoAuthenticationProvider)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/register","/login", "/generate-token", "/refresh-token").permitAll()
+                        .requestMatchers("/gs-guide-websocket/**", "/register","/login", "/generate-token", "/refresh-token").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class) // generate token filter

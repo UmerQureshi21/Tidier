@@ -7,7 +7,6 @@ import {
   uploadVideos,
 } from "../services/videoService";
 
-
 export default function Upload() {
   const [prevFiles, setPrevFiles] = useState<VideoRequestDTO[]>([]);
 
@@ -61,22 +60,30 @@ export default function Upload() {
         </div>
       </div>
       <div>
-        <div className="w-full bg-black flex flex-col items-center pb-[100px] ">
-          <div className="bg-[rgb(20,20,20)] w-[95%] min-h-[800px] overflow-y-scroll rounded-[10px] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4">
-            {prevFiles.map((file, index) => (
-              <div
-                className="flex items-center justify-center hover:cursor-pointer"
-                key={`Prev Video ${index}`}
-              >
-                <FileDetails
-                  name={file.name}
-                  size={0}
-                  type={""}
-                  videoSrc={file.previewUrl}
-                />
-              </div>
-            ))}
-          </div>
+        <div className="w-full bg-black  flex flex-col items-center pb-[100px] ">
+          {prevFiles.length > 0 ? (
+            <div className="bg-[rgb(20,20,20)] w-[95%] min-h-[800px] overflow-y-scroll rounded-[10px] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4">
+              {prevFiles.map((file, index) => (
+                <div
+                  className="flex items-center justify-center hover:cursor-pointer"
+                  key={`Prev Video ${index}`}
+                >
+                  <FileDetails
+                    name={file.name}
+                    size={0}
+                    type={""}
+                    videoSrc={file.previewUrl}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-white min-h-screen mt-[100px] poppins-font text-[40px] w-[50%] text-center">
+              No videos have been uploaded yet. Click on the {" "}
+              <span className="text-[#925cfe]">Upload</span> page to
+              upload videos that you can use later!
+            </div>
+          )}
         </div>
       </div>
     </div>

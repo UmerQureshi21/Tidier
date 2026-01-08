@@ -2,7 +2,7 @@ import Montages from "../components/Montages";
 
 export default function MontagePage() {
   return (
-    <div>
+    <div className="">
       {/* <HelloWebSocket /> */}
       <Montages />
     </div>

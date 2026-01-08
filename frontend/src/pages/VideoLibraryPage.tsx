@@ -4,6 +4,6 @@ export default function VideoLibraryPage() {
 
 
   return (
-    <Upload/>
+    <div className=""><Upload/></div>
   );
 }
