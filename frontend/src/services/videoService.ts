@@ -49,7 +49,6 @@ export async function uploadVideos(files: FileList): Promise<void> {
     const res = await axiosInstance.post("/videos", request);
 
     console.log("Upload successful:", res.data);
-    clearVideoCache();
   } catch (err) {
     console.error("Upload failed:", err);
     throw err;

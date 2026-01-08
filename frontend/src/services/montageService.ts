@@ -10,7 +10,6 @@ const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 let cachedVideos: MontageResponseDTO[] | null = null;
 let cacheTime: number = 0;
 
-
 export async function createMontage(
   files: VideoRequestDTO[],
   clicks: boolean[],
@@ -33,10 +32,8 @@ export async function createMontage(
 
   // Find timestamps containing FOOD-related visuals in a STREET environment at NIGHT.
 
-  const res = await axiosInstance.post(
-    `/montages`,
-    request
-  );
+  const res = await axiosInstance.post(`/montages`, request);
+  clearMontageCache();
   let data: MontageResponseDTO = res.data;
   return data;
 }
@@ -67,4 +64,9 @@ export async function getAllMontages(): Promise<MontageResponseDTO[]> {
     console.error("Failed to fetch videos:", err);
     throw err;
   }
+}
+
+export function clearMontageCache(): void {
+  cachedVideos = null;
+  cacheTime = 0;
 }
