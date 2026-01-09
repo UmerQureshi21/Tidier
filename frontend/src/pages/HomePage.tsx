@@ -131,7 +131,7 @@ function Example() {
   return (
     <div
       ref={ref}
-      className="w-full bg-black flex flex-col items-center lg:flex-row transition-all duration-1000"
+      className="w-full flex flex-col items-center lg:flex-row transition-all duration-1000"
       style={{
         opacity: isVisible ? 1 : 0,
         transform: isVisible ? "translateY(0)" : "translateY(20)",
@@ -151,7 +151,7 @@ function Example() {
           ></video>
         </div>
       ) : (
-        <div className="w-[60%] flex items-center justify-center">
+        <div className="w-[80%] mt-[50px] lg:mt-[0px] lg:w-[60%] flex items-center justify-center">
           <video
             className=" w-full border-[1px] border-white rounded-[20px]"
             src="/trip-slice-desktop.mov"
@@ -210,7 +210,7 @@ function Procedure() {
           </div>
           <div className="flex-1">
             <h3 className="text-xl text-center md:text-3xl font-thin text-white mb-2">
-              Select all the videos you want to search from
+              Select all the vacation videos you want to search from.
             </h3>
           </div>
         </div>

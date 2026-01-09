@@ -10,6 +10,7 @@ import {
 export default function Upload() {
   const [prevFiles, setPrevFiles] = useState<VideoRequestDTO[]>([]);
   const [exceededUploads, setExceededUploads] = useState<boolean>(false);
+  const [rateLimit, setRateLimit] = useState<boolean>(false);
 
   async function loadVideos() {
     try {
@@ -29,12 +30,19 @@ export default function Upload() {
       try {
         if (e.target.files.length <= 5) {
           setExceededUploads(false);
-          await uploadVideos(e.target.files);
-          clearVideoCache(); // Clear cache so fresh data is fetched
-          await loadVideos();
+          const uploadSuccessful: boolean = await uploadVideos(e.target.files);
+          if (uploadSuccessful) {
+            setRateLimit(false);
+            clearVideoCache(); // Clear cache so fresh data is fetched
+            await loadVideos();
+          } else {
+            setRateLimit(true);
+          }
         } else {
           setExceededUploads(true);
         }
+
+        // do errror handling for limit exceeded
       } catch (err) {
         console.error("Error uploading videos:", err);
       }
@@ -60,9 +68,22 @@ export default function Upload() {
             />
             Upload Videos
           </button>
+          <h1 className="py-[15px] w-[90%] text-white font-normal sm:w-full text-center">
+            Before you can use parts of your video for a montage, you must
+            upload it first, for proper analyzing capabilities
+          </h1>
           {exceededUploads ? (
             <h1 className="py-[15px] text-red-500 font-bold w-full text-center">
               Can only upload up to 5 videos at a time.
+            </h1>
+          ) : null}
+          {rateLimit ? (
+            <h1 className="py-[15px] w-[90%] text-red-500 font-bold sm:w-full text-center">
+              This is a message from the creator of this app. If you are reading
+              this, then that means I have hit my rate limit on minutes of
+              videos that I can upload to the service that I'm using. Come back
+              when I'm not broke and can afford a better plan. Sorry for the
+              inconvenience.
             </h1>
           ) : null}
         </div>

@@ -29,6 +29,7 @@ export default function Header({ height, isHome }: props) {
         height: windowWidth >= MEDIUM_WIDTH_SIZE ? height : 320,
       }}
     >
+      {/* Carousel background */}
       {windowWidth >= MEDIUM_WIDTH_SIZE ? (
         <div
           className="w-full"
@@ -69,17 +70,20 @@ export default function Header({ height, isHome }: props) {
         </div>
       )}
 
+      {/* Logo */}
       {windowWidth >= MEDIUM_WIDTH_SIZE ? (
-        !isHome ?(<img
-          src="/trip-slice-logo-gradient.png"
-          className="absolute z-[50] top-[25px] w-[20%] left-[40%] lg:w-[15%] lg:left-[42.5%]"
-          alt=""
-        />) : (
+        !isHome ? (
           <img
-          src="/trip-slice-logo-gradient.png"
-          className="absolute z-[50] top-[55px] w-[50%] left-[25%] lg:w-[30%] lg:left-[35%]"
-          alt=""
-        />
+            src="/trip-slice-logo-gradient.png"
+            className="absolute z-[50] top-[25px] w-[20%] left-[40%] lg:w-[15%] lg:left-[42.5%]"
+            alt=""
+          />
+        ) : (
+          <img
+            src="/trip-slice-logo-gradient.png"
+            className="absolute z-[50] top-[55px] w-[50%] left-[25%] lg:w-[30%] lg:left-[35%]"
+            alt=""
+          />
         )
       ) : (
         <h1
@@ -92,6 +96,8 @@ export default function Header({ height, isHome }: props) {
           TripSlice
         </h1>
       )}
+
+      {/* Tag line */}
       {isHome || windowWidth < MEDIUM_WIDTH_SIZE ? (
         <h1
           className="absolute w-[85%] font-thin top-[100px] lg:top-[320px] md:top-[370px] left-[20px] 
