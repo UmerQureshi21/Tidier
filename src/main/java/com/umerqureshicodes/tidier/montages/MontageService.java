@@ -34,6 +34,7 @@ public class MontageService {
     private final TwelveLabsService twelveLabsService;
     private final SimpMessagingTemplate messagingTemplate;
     int duration = 0;
+    HashMap<String,Boolean> hasTimestamps = new HashMap<>();
     public MontageService(MontageRepo montageRepo, VideoService videoService, S3Service s3Service, TwelveLabsService twelveLabsService, SimpMessagingTemplate messagingTemplate, FFmpegService fFmpegService, UserRepo userRepo, VideoRepo videoRepo) {
         this.montageRepo = montageRepo;
         this.videoService = videoService;
@@ -60,8 +61,11 @@ public class MontageService {
 
     public MontageResponseDTO createMontage(MontageRequestDTO montageRequestDTO, String email) {
         duration = 0; // Reset
+        for (VideoRequestDTO videoRequestDTO: montageRequestDTO.videoRequestDTOs()){
+            hasTimestamps.put(videoRequestDTO.getName(),true);
+        }
         Optional<AppUser> user = userRepo.findByUsername(email) ;
-        if(!user.isPresent()) {
+        if(user.isEmpty()) {
             System.out.println("User not found");
             return null;
         }
@@ -71,10 +75,12 @@ public class MontageService {
        if(ffmpegCode == 0) {
            List<String> videoIds = new ArrayList<>();
            for (VideoRequestDTO v : montageRequestDTO.videoRequestDTOs()) {
-               videoIds.add(v.getVideoId());
+               if(hasTimestamps.get(v.getName())) {
+                   videoIds.add(v.getVideoId());
+               }
            }
            List<Video> videosInMontage = videoService.getVideosByVideoIds(videoIds);
-           // Adds this montage to each video in db
+           // Adds this montage to each video in db that contains intervals
            for (Video v : videosInMontage) {
                videoService.updateVideo(v,montage);
            }
@@ -97,13 +103,13 @@ public class MontageService {
     public List<String> analyzeVideoWithPrompt(MontageRequestDTO montageRequestDTO) {
         List<String> timestamps = new ArrayList<>();
         for(VideoRequestDTO v : montageRequestDTO.videoRequestDTOs()) {
-//            TwelveLabsTimeStampResponse response = twelveLabsService.getIntervalsOfTopic(v.getVideoId(), montageRequestDTO.sentence());
-//            if (response != null) {
-//                timestamps.add(response.data());
-//                notify("Successfully extracted " + montageRequestDTO.prompt() + " from " + v.getName(), null);
-//            }
-            notify("Successfully extracted " + montageRequestDTO.prompt() + " from " + v.getName(), null);
-            timestamps.add("00:00-00:02"); // ONLY ADDING THIS BECAUSE I HIT RATE LIMIT
+            TwelveLabsTimeStampResponse response = twelveLabsService.getIntervalsOfTopic(v.getVideoId(), montageRequestDTO.sentence());
+            if (response != null) {
+                timestamps.add(response.data());
+                notify("Successfully extracted " + montageRequestDTO.prompt() + " from " + v.getName(), null);
+            }
+           // notify("Successfully extracted " + montageRequestDTO.prompt() + " from " + v.getName(), null);
+          //  timestamps.add("00:00-00:02"); // ONLY ADDING THIS BECAUSE I HIT RATE LIMIT
         }
         return timestamps;
     }
@@ -157,7 +163,10 @@ public class MontageService {
                 }
             }
             else{
+                // if a video doesn't contain any instance of the topic, then 00:00 is returned.
+                // Meaning only one interval in intervals, has that video
                 System.out.println("No time stamp found in" + interval.get("video"));
+                hasTimestamps.put(interval.get("video"),false);
             }
             i = i + 1;
         }
