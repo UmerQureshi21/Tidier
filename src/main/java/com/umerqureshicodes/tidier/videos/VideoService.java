@@ -55,9 +55,12 @@ public class VideoService {
     public List<VideoResponseDTO> save(List<MultipartFile> files, String userEmail) {
         List<VideoResponseDTO> responses = new ArrayList<>();
 
+        if (files.size() > 5){
+            System.out.println("You can only save 5 or less video files at a time");
+            return responses;
+        }
+
         for (MultipartFile file : files) {
-
-
 
             File tempFile = null;
 
@@ -105,7 +108,6 @@ public class VideoService {
                 }
             }
         }
-
         return responses;
     }
 
