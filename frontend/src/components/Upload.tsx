@@ -71,9 +71,9 @@ export default function Upload() {
         </div>
       </div>
       <div>
-        <div className="w-full bg-black  flex flex-col items-center pb-[100px] ">
+        <div className="w-full   bg-black  flex flex-col items-center  ">
           {prevFiles.length > 0 ? (
-            <div className="bg-[rgb(20,20,20)] w-[95%] min-h-[800px] overflow-y-scroll rounded-[10px] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4">
+            <div className="bg-[rgb(20,20,20)] w-[95%] mb-[100px] max-h-[700px] overflow-y-scroll rounded-[10px] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4">
               {prevFiles.map((file, index) => (
                 <div
                   className="flex items-center justify-center hover:cursor-pointer"

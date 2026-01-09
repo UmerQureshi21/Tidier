@@ -264,31 +264,35 @@ public class MontageService {
     }
 
     public MontageResponseDTO getLongestMontage(String userEmail) {
-        List<Montage> montages = montageRepo.findAllByUserUsername(userEmail);
-        int max = montages.getFirst().getDuration();
+        List<MontageResponseDTO> montages = this.getMontages(userEmail);
+        if(montages.isEmpty()) {
+            return null;
+        }
+        int max = montages.getFirst().duration();
         int maxIndex = 0;
         for (int i = 1; i < montages.size(); i++) {
-            if (montages.get(i).getDuration() > max) {
-                max = montages.get(i).getDuration();
+            if (montages.get(i).duration() > max) {
+                max = montages.get(i).duration();
                 maxIndex = i;
             }
         }
-        String preSignedUrl = s3Service.generatePresignedGetUrl("tidier",getS3Name(montages.get(maxIndex).getName(),userEmail)).toString();
-        return this.convertToDTO(montages.get(maxIndex), preSignedUrl);
+        return montages.get(maxIndex);
     }
 
     public MontageResponseDTO getMostVideoMontage(String userEmail) {
-        List<Montage> montages = montageRepo.findAllByUserUsername(userEmail);
-        int max = montages.getFirst().getVideos().size();
+        List<MontageResponseDTO> montages = this.getMontages(userEmail);
+        if(montages.isEmpty()) {
+            return null;
+        }
+        int max = montages.getFirst().duration();
         int maxIndex = 0;
         for (int i = 1; i < montages.size(); i++) {
-            int count = montages.get(i).getVideos().size();
+            int count = montages.get(i).videos().size();
             if (count > max) {
-                max = count;
+                max = count ;
                 maxIndex = i;
             }
         }
-        String preSignedUrl = s3Service.generatePresignedGetUrl("tidier",getS3Name(montages.get(maxIndex).getName(),userEmail)).toString();
-        return this.convertToDTO(montages.get(maxIndex), preSignedUrl);
+        return montages.get(maxIndex);
     }
 }

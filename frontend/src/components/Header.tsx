@@ -70,11 +70,17 @@ export default function Header({ height, isHome }: props) {
       )}
 
       {windowWidth >= MEDIUM_WIDTH_SIZE ? (
-        <img
+        !isHome ?(<img
           src="/trip-slice-logo-gradient.png"
           className="absolute z-[50] top-[25px] w-[20%] left-[40%] lg:w-[15%] lg:left-[42.5%]"
           alt=""
+        />) : (
+          <img
+          src="/trip-slice-logo-gradient.png"
+          className="absolute z-[50] top-[55px] w-[50%] left-[25%] lg:w-[30%] lg:left-[35%]"
+          alt=""
         />
+        )
       ) : (
         <h1
           className="absolute z-[50] poppins-font top-[40px] left-[20px] md:top-[80px] 
@@ -88,7 +94,7 @@ export default function Header({ height, isHome }: props) {
       )}
       {isHome || windowWidth < MEDIUM_WIDTH_SIZE ? (
         <h1
-          className="absolute w-[85%]  font-thin top-[100px] md:top-[270px] left-[20px] 
+          className="absolute w-[85%] font-thin top-[100px] lg:top-[320px] md:top-[370px] left-[20px] 
                z-[50] text-white text-[25px] poppins-font md:left-1/2 md:-translate-x-1/2 md:text-center md:w-auto"
         >
           Your AI-powered
