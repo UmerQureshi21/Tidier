@@ -35,17 +35,15 @@ public class MontageController {
         return montageService.getMontages(user.getUsername());
     }
 
-//    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
-//    @GetMapping("/montages/most-vids")
-//    @Cacheable(value = "mostVids", cacheManager = "cacheManager") // Looks under key named montages
-//    public MontageResponseDTO getMostVideoMontage(@AuthenticationPrincipal AppUser user){
-//        return montageService.getMostVideoMontage(user.getUsername());
-//    }
-//
-//    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
-//    @GetMapping("/montages/longest")
-//    @Cacheable(value = "longest", cacheManager = "cacheManager") // Looks under key named montages
-//    public MontageResponseDTO getLongestMontage(@AuthenticationPrincipal AppUser user) throws IOException, InterruptedException {
-//        return montageService.getLongestMontage(user.getUsername());
-//    }
+    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
+    @GetMapping("/montages/most-vids")
+    public MontageResponseDTO getMostVideoMontage(@AuthenticationPrincipal AppUser user){
+        return montageService.getMostVideoMontage(user.getUsername());
+    }
+
+    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
+    @GetMapping("/montages/longest")
+    public MontageResponseDTO getLongestMontage(@AuthenticationPrincipal AppUser user) throws IOException, InterruptedException {
+        return montageService.getLongestMontage(user.getUsername());
+    }
 }

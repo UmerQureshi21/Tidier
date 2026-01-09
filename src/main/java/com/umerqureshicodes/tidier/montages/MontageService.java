@@ -263,5 +263,32 @@ public class MontageService {
         return tempFile;
     }
 
+    public MontageResponseDTO getLongestMontage(String userEmail) {
+        List<Montage> montages = montageRepo.findAllByUserUsername(userEmail);
+        int max = montages.getFirst().getDuration();
+        int maxIndex = 0;
+        for (int i = 1; i < montages.size(); i++) {
+            if (montages.get(i).getDuration() > max) {
+                max = montages.get(i).getDuration();
+                maxIndex = i;
+            }
+        }
+        String preSignedUrl = s3Service.generatePresignedGetUrl("tidier",getS3Name(montages.get(maxIndex).getName(),userEmail)).toString();
+        return this.convertToDTO(montages.get(maxIndex), preSignedUrl);
+    }
 
+    public MontageResponseDTO getMostVideoMontage(String userEmail) {
+        List<Montage> montages = montageRepo.findAllByUserUsername(userEmail);
+        int max = montages.getFirst().getVideos().size();
+        int maxIndex = 0;
+        for (int i = 1; i < montages.size(); i++) {
+            int count = montages.get(i).getVideos().size();
+            if (count > max) {
+                max = count;
+                maxIndex = i;
+            }
+        }
+        String preSignedUrl = s3Service.generatePresignedGetUrl("tidier",getS3Name(montages.get(maxIndex).getName(),userEmail)).toString();
+        return this.convertToDTO(montages.get(maxIndex), preSignedUrl);
+    }
 }
