@@ -15,6 +15,7 @@ lerna-debug.log*
 /frontend/public/montages
 frontend/.vite/
 frontend/.env
+frontend/public/trip-slice-desktop.mov
 
 # === Java (Spring Boot) ===
 HELP.md
