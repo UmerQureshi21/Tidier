@@ -21,23 +21,31 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="bg-black">
+    <div className="bg-black ">
       <div>
         <Header height={600} isHome={true} />
       </div>
 
-      <div className="w-full relative poppins-font">
+      <div className="w-full bg-black relative poppins-font">
         <div className="relative w-full h-[100px] bg-black prompt-section flex flex-col items-center"></div>
 
         {windowWidth >= 768 ? (
           <>
             <NavLink
               to={"/account"}
-              className="absolute w-[20%] left-[40%] top-[-300px]  bg-[#000000] text-white text-[30px] rounded-[100px] h-[100px]
-                      overflow-hidden group flex items-center justify-center
-                     transition-all duration-1000 ease-out delay-500
-                     hover:scale-110 hover:shadow-2xl
-                     scale-100 opacity-100"
+              className="
+              absolute w-[30%] left-[35%]
+              lg:top-[-200px] top-[-150px]
+              bg-[#000000] text-white text-[30px]
+              rounded-[100px] h-[100px]
+              overflow-hidden group flex items-center justify-center
+              
+              transition-transform transition-shadow
+              duration-1000 ease-out delay-500
+              
+              hover:scale-110 hover:shadow-2xl
+              scale-100 opacity-100
+              "
             >
               <span
                 className="absolute inset-0 bg-[#925CFE] translate-x-[-100%] 
@@ -53,27 +61,29 @@ export default function HomePage() {
           <Example />
         )}
 
-        <div className="pt-[200px] bg-black">
+        <div className="py-[100px] bg-black">
           <Procedure />
         </div>
 
         {windowWidth < 768 ? (
-          <NavLink
-            to={"/account"}
-            className="mt-[80px] mb-[50px] relative left-[10%] w-[80%] bg-[#925CFE] text-white text-[30px] rounded-[100px] h-[100px]
-            overflow-hidden group flex items-center justify-center
-           transition-all duration-1000 ease-out delay-500
-           hover:scale-110 hover:shadow-2xl
-           scale-100 opacity-100 border-[1px] border-black hover:border-[#925CFE]"
-          >
-            <span
-              className="absolute inset-0 bg-[#000000] translate-x-[-100%] 
-         group-hover:translate-x-0 transition-transform duration-500"
-            ></span>
-            <span className="relative z-10 group-hover:text-[#925CFE] text-[#000000] transition-colors duration-300">
-              Start Creating!
-            </span>
-          </NavLink>
+          <div className="pb-[50px]">
+            <NavLink
+              to={"/account"}
+              className="mt-[80px] mb-[50px] relative left-[10%] w-[80%] bg-[#925CFE] text-white text-[30px] rounded-[100px] h-[100px]
+              overflow-hidden group flex items-center justify-center
+             transition-all duration-1000 ease-out delay-500
+             hover:scale-110 hover:shadow-2xl
+             scale-100 opacity-100 border-[1px] border-black hover:border-[#925CFE]"
+            >
+              <span
+                className="absolute inset-0 bg-[#000000] translate-x-[-100%] 
+                     group-hover:translate-x-0 transition-transform duration-500"
+              ></span>
+              <span className="relative z-10 group-hover:text-[#925CFE] text-[#000000] transition-colors duration-300">
+                Start Creating!
+              </span>
+            </NavLink>
+          </div>
         ) : null}
       </div>
     </div>
@@ -127,17 +137,31 @@ function Example() {
         transform: isVisible ? "translateY(0)" : "translateY(20)",
       }}
     >
-      {windowWidth >= 1024 ? <TagLine width={50} /> : <TagLine width={100} />}
+      {windowWidth >= 1024 ? <TagLine width={40} /> : <TagLine width={100} />}
 
-      <div className="w-[50%] bg-black flex justify-center">
-        <video
-          className="lg:w-[50%] lg:mt-[0px] mt-[50px] w-[70%] border-[1px] border-white rounded-[20px]"
-          src="/tidier-example.mov"
-          autoPlay
-          muted
-          playsInline
-        ></video>
-      </div>
+      {windowWidth < 640 ? (
+        <div className="sm:w-[50%] bg-black flex justify-center">
+          <video
+            className="lg:w-[50%] lg:mt-[0px] mt-[50px] w-[70%] border-[1px] border-white rounded-[20px]"
+            src="/trip-slice-video.mov"
+            autoPlay
+            muted
+            playsInline
+            loop
+          ></video>
+        </div>
+      ) : (
+        <div className="w-[80%] mt-[50px] lg:mt-[0px] lg:w-[60%] flex items-center justify-center">
+          <video
+            className=" w-full border-[1px] border-white rounded-[20px]"
+            src="/trip-slice-desktop.mov"
+            autoPlay
+            muted
+            playsInline
+            loop
+          ></video>
+        </div>
+      )}
     </div>
   );
 }
@@ -186,7 +210,7 @@ function Procedure() {
           </div>
           <div className="flex-1">
             <h3 className="text-xl text-center md:text-3xl font-thin text-white mb-2">
-              Select all the videos you want to search from
+              Select all the vacation videos you want to search from.
             </h3>
           </div>
         </div>

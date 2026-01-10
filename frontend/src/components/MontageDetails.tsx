@@ -32,9 +32,9 @@ export default function MontageDetails({
       }
     `}
     >
-      <div className="p-4 md:p-6 bg-[#222222] flex flex-col h-full rounded-xl">
+      <div className="p-4 md:p-6 bg-[#222222] flex flex-col  rounded-xl">
         <div className="flex flex-col gap-4 flex-1">
-          <div className="flex-1">
+          <div className="">
             <h3 className="text-xl md:text-2xl font-bold text-[#fff] mb-2">
               {title}
             </h3>

@@ -23,7 +23,7 @@ export default function Montages() {
   return (
     <div className="w-full bg-black flex justify-center pb-[100px]">
       {montages.length > 0 ? (
-        <div className="bg-[rgb(20,20,20)] w-[95%] min-h-[800px] overflow-y-scroll rounded-[10px] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+        <div className="bg-[rgb(20,20,20)] w-[95%] mb-[100px] max-h-[700px] overflow-y-scroll rounded-[10px] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
           {montages?.map((montage, index) => (
             <MontageDetails
               key={`montage ${index}`}

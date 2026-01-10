@@ -4,6 +4,7 @@ package com.umerqureshicodes.tidier.videos;
 import com.umerqureshicodes.tidier.FFmpeg.FFmpegService;
 import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsService;
 import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsTaskResponse;
+import com.umerqureshicodes.tidier.limits.LimitService;
 import com.umerqureshicodes.tidier.montages.Montage;
 import com.umerqureshicodes.tidier.s3.S3Service;
 import com.umerqureshicodes.tidier.users.AppUser;
@@ -25,13 +26,15 @@ public class VideoService {
     private final TwelveLabsService twelveLabsService;
     private final FFmpegService ffmpegService;
     private final UserRepo userRepo;
+    private final LimitService limitService;
     @Autowired
-    public VideoService(VideoRepo videoRepo, S3Service s3Service, TwelveLabsService twelveLabsService, FFmpegService ffmpegService, UserRepo userRepo) {
+    public VideoService(VideoRepo videoRepo, S3Service s3Service, TwelveLabsService twelveLabsService, FFmpegService ffmpegService, UserRepo userRepo, LimitService limitService) {
         this.videoRepo = videoRepo;
         this.s3Service = s3Service;
         this.twelveLabsService = twelveLabsService;
         this.ffmpegService = ffmpegService;
         this.userRepo = userRepo;
+        this.limitService = limitService;
     }
 
     public File convertToMp4(MultipartFile multipartFile) throws IOException, InterruptedException {
@@ -53,36 +56,57 @@ public class VideoService {
     }
 
     public List<VideoResponseDTO> save(List<MultipartFile> files, String userEmail) {
+        long totalVideosLength = 0;
         List<VideoResponseDTO> responses = new ArrayList<>();
+        HashMap<String, File> videos = new HashMap<>();
 
         if (files.size() > 5){
             System.out.println("You can only save 5 or less video files at a time");
-            return responses;
+            return null;
         }
 
         for (MultipartFile file : files) {
-
             File tempFile = null;
-
             try {
                 if (!"video/mp4".equalsIgnoreCase(file.getContentType())) {
-                    tempFile = convertToMp4(file);
+                 tempFile = convertToMp4(file);
                 } else {
-                    tempFile = Files.createTempFile("upload-", ".mp4").toFile();
-                    file.transferTo(tempFile); //after transferTo, the multipart is designed to no longer be used
+                tempFile = Files.createTempFile("upload-", ".mp4").toFile();
+                String fileName = file.getOriginalFilename();
+                 file.transferTo(tempFile); //after transferTo, the multipart is designed to no longer be used
+                videos.put(fileName, tempFile);
                 }
 
                 double duration = ffmpegService.checkDuration(tempFile);
                 System.out.println("Duration: " + duration);
-                if(duration > 180 || duration < 3){
+                if (duration > 180 || duration < 3) {
                     System.out.println("Invalid duration, your videos should be at least 3 seconds and no more than 3 minutes");
                     return null;
                 }
+                totalVideosLength = totalVideosLength + Math.round(duration * 1000.0);
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                if (tempFile != null && tempFile.exists()) {
+                    tempFile.delete();
+                }
+                System.out.println("Error while saving video : " + e.getMessage());
+                return null;
+            }
+        }
 
+        if (limitService.exceededLimit(totalVideosLength)){
+            System.out.println("Total video minutes across all users exceeded limit");
+            return responses;
+        }
+
+        for (Map.Entry<String, File> entry : videos.entrySet()) {
+
+            try {
                 // Upload to TwelveLabs
                 Video uploadedVid = uploadToTwelveLabsAndSave(
-                        tempFile,
-                        file.getOriginalFilename(),
+                        entry.getValue(),
+                        entry.getKey(),
                         userEmail
                 );
 
@@ -90,7 +114,7 @@ public class VideoService {
                 s3Service.putObject(
                         "tidier",
                         this.getS3Name(uploadedVid),
-                        tempFile
+                        entry.getValue()
                 );
 
                 responses.add(
@@ -103,11 +127,13 @@ public class VideoService {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             } finally {
-                if (tempFile != null && tempFile.exists()) {
-                    tempFile.delete();
+                if (entry.getValue() != null && entry.getValue().exists()) {
+                    entry.getValue().delete();
                 }
             }
         }
+
+
         return responses;
     }
 
@@ -142,7 +168,6 @@ public class VideoService {
         }
         return videoResponseDTOList;
     }
-
 
     public List<Video> getVideosByVideoIds(List<String> videoIds) {
         return  videoRepo.findAllByVideoIds(videoIds);

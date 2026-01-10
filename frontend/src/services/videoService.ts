@@ -37,7 +37,7 @@ export async function getAllVideos(): Promise<VideoRequestDTO[]> {
   }
 }
 
-export async function uploadVideos(files: FileList): Promise<void> {
+export async function uploadVideos(files: FileList): Promise<boolean> {
   try {
     const request = new FormData();
 
@@ -47,8 +47,14 @@ export async function uploadVideos(files: FileList): Promise<void> {
     }
 
     const res = await axiosInstance.post("/videos", request);
-
-    console.log("Upload successful:", res.data);
+    const data: VideoRequestDTO[] = res.data;
+    if (data.length == 0) {
+      console.log("rate limit");
+      return false;
+    } else {
+      console.log("Upload successful:", res.data);
+      return true;
+    }
   } catch (err) {
     console.error("Upload failed:", err);
     throw err;

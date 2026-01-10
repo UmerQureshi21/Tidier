@@ -5,10 +5,6 @@ import DashboardStats from "./DashboardStats";
 import PromptSuggestion from "./PromptSuggestions";
 import MontageDetails from "./MontageDetails";
 
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
-let cachedMontages: MontageResponseDTO[] | null = null;
-let cacheTime: number = 0;
-
 export default function DashboardHero() {
   const [displayedName, setDisplayedName] = useState<string>("");
   const [mostRecentMontage, setMostRecentMontage] =
@@ -24,23 +20,23 @@ export default function DashboardHero() {
 
   async function getMontages() {
     try {
-      const now = Date.now();
+      //const now = Date.now();
 
-      if (cachedMontages && now - cacheTime < CACHE_DURATION) {
-        console.log("Using cached montage highlights");
-        setMostRecentMontage(cachedMontages[0]);
-        setMostVideosMontage(cachedMontages[1]);
-      }
+      // if (cachedMontages && now - cacheTime < CACHE_DURATION) {
+      //   console.log("Using cached montage highlights");
+      //   setMostRecentMontage(cachedMontages[0]);
+      //   setMostVideosMontage(cachedMontages[1]);
+      // }
 
-      console.log("Fetching fresh montage highlights from API");
+      //console.log("Fetching fresh montage highlights from API");
 
       const longest = await axiosInstance.get("/montages/longest");
       setMostRecentMontage(longest.data);
       const mostVids = await axiosInstance.get("montages/most-vids");
       setMostVideosMontage(mostVids.data);
 
-      cachedMontages = [longest.data, mostVids.data];
-      cacheTime = now;
+      // cachedMontages = [longest.data, mostVids.data];
+      // cacheTime = now;
     } catch (err) {
       console.error("Failed to fetch montages:", err);
     }
@@ -48,7 +44,7 @@ export default function DashboardHero() {
 
   useEffect(() => {
     getUser();
-   // getMontages();
+    getMontages();
   }, []);
 
   return (
@@ -83,6 +79,8 @@ export default function DashboardHero() {
             <MontageDetails
               title={mostRecentMontage.name}
               topic={mostRecentMontage.prompt}
+              createdAt={mostRecentMontage.createdAt}
+              duration={mostRecentMontage.duration}
               photos={mostRecentMontage.videos?.map((v) => v.previewUrl) || []}
               videoSrc={mostRecentMontage.preSignedUrl}
             />
@@ -95,6 +93,8 @@ export default function DashboardHero() {
             <MontageDetails
               title={mostVideosMontage.name}
               topic={mostVideosMontage.prompt}
+              createdAt={mostVideosMontage.createdAt}
+              duration={mostVideosMontage.duration}
               photos={mostVideosMontage.videos?.map((v) => v.previewUrl) || []}
               videoSrc={mostVideosMontage.preSignedUrl}
             />

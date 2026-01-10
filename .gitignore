@@ -71,3 +71,6 @@ build/
 src/main/resources/application-secrets.properties
 src/main/resources/application.properties
 
+
+.DS_Store
+frontend/public/trip-slice-desktop.mov

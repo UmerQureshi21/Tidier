@@ -263,5 +263,36 @@ public class MontageService {
         return tempFile;
     }
 
+    public MontageResponseDTO getLongestMontage(String userEmail) {
+        List<MontageResponseDTO> montages = this.getMontages(userEmail);
+        if(montages.isEmpty()) {
+            return null;
+        }
+        int max = montages.getFirst().duration();
+        int maxIndex = 0;
+        for (int i = 1; i < montages.size(); i++) {
+            if (montages.get(i).duration() > max) {
+                max = montages.get(i).duration();
+                maxIndex = i;
+            }
+        }
+        return montages.get(maxIndex);
+    }
 
+    public MontageResponseDTO getMostVideoMontage(String userEmail) {
+        List<MontageResponseDTO> montages = this.getMontages(userEmail);
+        if(montages.isEmpty()) {
+            return null;
+        }
+        int max = montages.getFirst().duration();
+        int maxIndex = 0;
+        for (int i = 1; i < montages.size(); i++) {
+            int count = montages.get(i).videos().size();
+            if (count > max) {
+                max = count ;
+                maxIndex = i;
+            }
+        }
+        return montages.get(maxIndex);
+    }
 }
