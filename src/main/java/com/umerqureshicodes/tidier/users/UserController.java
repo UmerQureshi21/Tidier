@@ -12,19 +12,16 @@ public class UserController {
     private UserService userService;
 
 
-    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @PostMapping("/register")
     public UserResponseDTO register(@RequestBody UserRequestDTO userRequestDTO) {
         return userService.createUser(userRequestDTO);
     }
 
-    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @PostMapping("/login")
     public UserResponseDTO login(@RequestBody UserRequestDTO dto) {
         return userService.login(dto) ;
     }
 
-    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @GetMapping("/user")
     public UserResponseDTO getUser(@AuthenticationPrincipal AppUser appUser){
         return userService.getUser(appUser.getUsername());

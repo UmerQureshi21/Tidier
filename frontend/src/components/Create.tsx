@@ -62,7 +62,7 @@ export default function UploadCopy() {
             progressMessage={`${montageName} has been created!`}
           />
           <button
-            className="hover:cursor-pointer mb-[100px] mt-[15px] hover:shadow-[0_0_10px_white] shadow-[0_0_0_white] transition duration-150 ease relative w-[80%] bg-[#925CFE] px-[30px] py-[15px] rounded-[20px] poppins-font text-white text-[20px]"
+            className="hover:cursor-pointer mb-[100px] mt-[15px] hover:shadow-[0_0_10px_white] shadow-[0_0_0_white] transition duration-150 ease relative w-[80%] max-w-[400px] bg-[#925CFE] px-[30px] py-[15px] rounded-[20px] poppins-font text-white text-[20px]"
             onClick={() => {
               isMontageFinished(false);
               isMontageSubmitted(false);
@@ -209,7 +209,7 @@ export default function UploadCopy() {
               ))}
             </div>
           ) : (
-            <div className="text-white min-h-screen mt-[100px] poppins-font sm:text-[40px] text-[30px] w-[95%] sm:w-[50%] text-center">
+            <div className="text-white min-h-screen mt-[100px] poppins-font sm:text-[40px] text-[30px] w-[75%] sm:w-[50%] text-center">
               No videos have been uploaded yet. Go on the{" "}
               <span className="text-[#925cfe]">Video Library</span> page to
               upload videos that you can use later!
