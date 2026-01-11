@@ -25,17 +25,16 @@ export default function FinishedMontage({
 
   return (
     <>
-      <div className="relative  w-full bg-black h-[60px] flex items-center justify-center prompt-section">
-        <h1 className="w-[70%] text-[white] text-[20px] text-center overflow-x-scroll whitespace-nowrap">
+      <div className="relative  w-full bg-black flex items-center justify-center ">
+        <h1 className="w-[70%] text-[white] text-[40px] font-bold text-center ">
           {progressMessage}
         </h1>
       </div>
-      <div className="w-full bg-black pb-[100px] flex flex-col items-center text-white">
-        <div className="w-[80%] h-[300px] bg-[rgb(20,20,20)] flex items-center justify-center rounded-[20px]">
+      <div className="w-full bg-black py-[20px] flex flex-col items-center text-white">
           <video
             key={`${preSignedUrl}-${reloadKey}`} // changing key forces React to reload
             src={preSignedUrl}
-            className="w-[80%] h-[250px] rounded-[40px]"
+            className="w-[90%] max-w-[400px] rounded-[40px] border-[2px] border-white"
             controls
             autoPlay
             onPlay={() => {
@@ -47,7 +46,6 @@ export default function FinishedMontage({
               setVideoReady(false); // keep trying
             }}
           />
-        </div>
       </div>
     </>
   );

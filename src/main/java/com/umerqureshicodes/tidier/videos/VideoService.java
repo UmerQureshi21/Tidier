@@ -56,6 +56,14 @@ public class VideoService {
     }
 
     public List<VideoResponseDTO> save(List<MultipartFile> files, String userEmail) {
+
+        List<Video> prevVideos =  videoRepo.findAllByUserUsername(userEmail);
+
+        if(prevVideos.size() > 15){
+            System.out.println("Max video limit reached");
+            return null;
+        }
+
         long totalVideosLength = 0;
         List<VideoResponseDTO> responses = new ArrayList<>();
         HashMap<String, File> videos = new HashMap<>();
