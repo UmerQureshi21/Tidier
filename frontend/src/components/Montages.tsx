@@ -31,7 +31,7 @@ export default function Montages() {
               topic={montage.prompt}
               createdAt={montage.createdAt}
               duration={montage.duration}
-              photos={montage.videos.map((video, vi) => video.previewUrl)}
+              photos={montage.videos.map((video) => video.previewUrl)}
               videoSrc={montage.preSignedUrl}
             />
           ))}
