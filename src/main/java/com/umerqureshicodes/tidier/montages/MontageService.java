@@ -24,7 +24,6 @@ import java.util.*;
 @Service
 public class MontageService {
 
-    private static final Logger log = LoggerFactory.getLogger(MontageService.class);
     private final FFmpegService fFmpegService;
     private final MontageRepo montageRepo;
     private final UserRepo userRepo;
