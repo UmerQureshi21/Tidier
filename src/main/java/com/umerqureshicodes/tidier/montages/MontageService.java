@@ -191,18 +191,22 @@ public class MontageService {
             File concatFile = Files.createTempFile("videos-", ".txt").toFile();
             Path tempPath = Paths.get(tempDir ,outputFileName+".mp4");
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(concatFile))) {
-                for (String file : trimmedFiles) {
-                    writer.write("file '"+tempDir + file + "'\n");
+                for (String fileName : trimmedFiles) {
+                    Path fullPath = Paths.get(tempDir, fileName);
+                    writer.write("file '" + fullPath.toString() + "'\n");
                 }
             }
             exitCode = fFmpegService.combineVideo(concatFile.getAbsolutePath(),tempPath.toString());
             if (exitCode == 0) {
-                for (String file : trimmedFiles) {
-                    Files.deleteIfExists(Paths.get(file));
+                for (String fileName : trimmedFiles) {
+                    Files.deleteIfExists(Paths.get(tempDir, fileName)); // ✅ correct delete path
                 }
+                Files.deleteIfExists(concatFile.toPath());
+
                 File montageFile = tempPath.toFile();
-                Files.deleteIfExists(Paths.get(concatFile.getAbsolutePath()));
-                s3Service.putObject("tidier",getS3Name(outputFileName,userEmail), montageFile);
+                s3Service.putObject("tidier", getS3Name(outputFileName, userEmail), montageFile);
+
+                Files.deleteIfExists(tempPath); // optional cleanup
             }
         } catch (Exception e) {
             e.printStackTrace();
