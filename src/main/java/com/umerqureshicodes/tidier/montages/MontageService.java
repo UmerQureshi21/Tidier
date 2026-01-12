@@ -60,6 +60,13 @@ public class MontageService {
     }
 
     public MontageResponseDTO createMontage(MontageRequestDTO montageRequestDTO, String email) {
+
+        if(montageRepo.findAllByUserUsername(email).size() >= 10){
+            System.out.println("Montage limit reached");
+            return null;
+        }
+
+
         duration = 0; // Reset
         for (VideoRequestDTO videoRequestDTO: montageRequestDTO.videoRequestDTOs()){
             hasTimestamps.put(videoRequestDTO.getName(),true);

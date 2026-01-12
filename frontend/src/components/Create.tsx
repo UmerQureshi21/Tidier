@@ -34,9 +34,13 @@ export default function UploadCopy() {
         title,
         sentence
       );
-      setPreSignedUrl(montageData.preSignedUrl);
-      setMontageName(montageData.name);
-      isMontageFinished(true);
+      if (montageData != null) {
+        setPreSignedUrl(montageData.preSignedUrl);
+        setMontageName(montageData.name);
+        isMontageFinished(true);
+      } else {
+        console.log("Max montage limit reached");
+      }
     } catch (err) {
       console.error("Montage upload failed my bro:", err);
     }

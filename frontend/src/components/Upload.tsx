@@ -11,11 +11,13 @@ export default function Upload() {
   const [prevFiles, setPrevFiles] = useState<VideoRequestDTO[]>([]);
   const [exceededUploads, setExceededUploads] = useState<boolean>(false);
   const [rateLimit, setRateLimit] = useState<boolean>(false);
+  const [totalVids, setTotalVids] = useState<number>(0);
 
   async function loadVideos() {
     try {
       const videos = await getAllVideos();
       setPrevFiles(videos);
+      setTotalVids(videos.length);
     } catch (err) {
       console.error("Error loading videos:", err);
     }
@@ -25,10 +27,14 @@ export default function Upload() {
     loadVideos();
   }, []);
 
+  useEffect(() => {
+    console.log("TOTAl VIDS: " + totalVids);
+  },[totalVids]);
+
   async function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files) {
       try {
-        if (e.target.files.length <= 5) {
+        if (e.target.files.length <= 5 && totalVids < 15) {
           setExceededUploads(false);
           const uploadSuccessful: boolean = await uploadVideos(e.target.files);
           if (uploadSuccessful) {

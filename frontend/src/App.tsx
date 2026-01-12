@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   createBrowserRouter,
-  createRoutesFromElements,
   Route,
   RouterProvider,
   Navigate,
@@ -19,7 +18,6 @@ import CreateMontagePage from "./pages/CreateMontagePage";
 import NotFoundPage from "./pages/NotFoundPage";
 import { restoreSession } from "./services/userService";
 import { tokenManager } from "./services/tokenManager";
-import AccountPage from "./pages/AccountPage";
 import { clearVideoCache } from "./services/videoService";
 import { clearMontageCache } from "./services/montageService";
 

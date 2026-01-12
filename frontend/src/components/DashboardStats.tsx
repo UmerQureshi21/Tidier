@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import type { VideoRequestDTO, MontageResponseDTO } from "../Types";
+//import type { MontageResponseDTO } from "../Types";
 import axiosInstance from "../services/refreshTokenAxios";
 
 export default function DashboardStats() {
   const navigate = useNavigate();
   const [videoCount, setVideoCount] = useState(30);
   const [montageCount, setMontageCount] = useState(7);
-  const [recentMontages, setRecentMontages] = useState<MontageResponseDTO[]>(
-    []
-  );
+  // const [recentMontages, setRecentMontages] = useState<MontageResponseDTO[]>(
+  //   []
+  // );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
