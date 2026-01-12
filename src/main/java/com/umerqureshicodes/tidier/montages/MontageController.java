@@ -16,32 +16,27 @@ public class MontageController {
         this.montageService = montageService;
     }
 
-    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @PostMapping("/montages")
     public MontageResponseDTO createMontage(@RequestBody MontageRequestDTO montageRequestDTO, @AuthenticationPrincipal AppUser appUser) {
         return montageService.createMontage(montageRequestDTO, appUser.getUsername());
     }
 
-    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @DeleteMapping("/montages/{id}")
     public String deleteMontage(@PathVariable Long id) {
         return montageService.deleteMontage(id);
     }
 
-    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @GetMapping("/montages")
     @Cacheable(value = "montages", cacheManager = "cacheManager") // Looks under key named montages
     public List<MontageResponseDTO> getUrl(@AuthenticationPrincipal AppUser user){
         return montageService.getMontages(user.getUsername());
     }
 
-    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @GetMapping("/montages/most-vids")
     public MontageResponseDTO getMostVideoMontage(@AuthenticationPrincipal AppUser user){
         return montageService.getMostVideoMontage(user.getUsername());
     }
 
-    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @GetMapping("/montages/longest")
     public MontageResponseDTO getLongestMontage(@AuthenticationPrincipal AppUser user) throws IOException, InterruptedException {
         return montageService.getLongestMontage(user.getUsername());

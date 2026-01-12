@@ -16,7 +16,6 @@ public class VideoController {
         this.videoService = videoService;
     }
 
-    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @GetMapping("/videos")
     @Cacheable(value = "videos", cacheManager = "cacheManager") // Looks under key named videos
     public List<VideoResponseDTO> getAllVideos(@AuthenticationPrincipal AppUser user) {
@@ -25,7 +24,6 @@ public class VideoController {
         return videoService.getVideos(email);
     }
 
-    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @PostMapping("/videos")
     public List<VideoResponseDTO> uploadVideoToBucket(
             @AuthenticationPrincipal AppUser user,
@@ -35,9 +33,6 @@ public class VideoController {
         return videoService.save(multipartFiles, email);
     }
 
-
-
-    @CrossOrigin(origins = "#{@environment.getProperty('frontend.host')}")
     @DeleteMapping("/videos/{id}")
     public String deleteVideo(@PathVariable long id) {
         return videoService.deleteVideo(id) ;
