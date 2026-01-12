@@ -45,36 +45,39 @@ export default function MontageProgressWebSocket() {
     <>
       <div className="relative w-full bg-black h-[700px] py-[100px] flex items-center justify-center ">
         <h1 className="w-[70%] text-[white] text-[20px] text-center ">
-          {progressMessage}
+          {/* {progressMessage}  */}
+          The backend is on the free plan and therfore requests are slow. Please
+          wait 1 - 2 minutes while your montage finishes. Sorry for the
+          inconvenience
         </h1>
-          <svg
-            className="w-[10%]"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 100 100"
-            preserveAspectRatio="xMidYMid"
-            width="50"
-            height="50"
-            style={{ shapeRendering: "auto", display: "block" }}
+        <svg
+          className="w-[10%]"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="xMidYMid"
+          width="50"
+          height="50"
+          style={{ shapeRendering: "auto", display: "block" }}
+        >
+          <circle
+            strokeDasharray="164.93361431346415 56.97787143782138"
+            r="35"
+            strokeWidth="10"
+            stroke="#6600ff"
+            fill="none"
+            cy="50"
+            cx="50"
           >
-            <circle
-              strokeDasharray="164.93361431346415 56.97787143782138"
-              r="35"
-              strokeWidth="10"
-              stroke="#6600ff"
-              fill="none"
-              cy="50"
-              cx="50"
-            >
-              <animateTransform
-                attributeName="transform"
-                type="rotate"
-                keyTimes="0;1"
-                values="0 50 50;360 50 50"
-                dur="1s"
-                repeatCount="indefinite"
-              />
-            </circle>
-          </svg>
+            <animateTransform
+              attributeName="transform"
+              type="rotate"
+              keyTimes="0;1"
+              values="0 50 50;360 50 50"
+              dur="1s"
+              repeatCount="indefinite"
+            />
+          </circle>
+        </svg>
       </div>
     </>
   );
