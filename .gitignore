@@ -70,7 +70,6 @@ build/
 
 # === Secrets ===
 src/main/resources/application-secrets.properties
-src/main/resources/application.properties
 
 
 .DS_Store
