@@ -1,12 +1,14 @@
-import { useState, useRef, useEffect } from "react";
+//import { useState } from "react";
+import { useRef, useEffect } from "react";
+
 import * as StompJs from "@stomp/stompjs";
 
 export default function MontageProgressWebSocket() {
   const full = import.meta.env.VITE_BACKEND_URL;
   const host = full.replace(/^https?:\/\//, "");
-  const [progressMessage, setProgressMessage] = useState<string>(
-    "Starting Montage Creation..."
-  );
+  // const [progressMessage, setProgressMessage] = useState<string>(
+  //   "Starting Montage Creation..."
+  // );
   const clientRef = useRef<StompJs.Client | null>(null);
 
   // WebSocket setup
@@ -20,7 +22,7 @@ export default function MontageProgressWebSocket() {
 
         client.subscribe("/topic/montage-progress", (message) => {
           const body = JSON.parse(message.body);
-          setProgressMessage(body.content);
+          //setProgressMessage(body.content);
 
           if (body.montagePath) {
             clientRef.current?.deactivate();
