@@ -30,6 +30,9 @@ public class UserConfig {
 
     private final JwtUtil jwtUtil;
 
+    @Value("${frontend.host}")
+    private String frontendUrl;
+
     public UserConfig(JwtUtil jwtUtil) {
         this.jwtUtil = jwtUtil;
     }
@@ -37,7 +40,7 @@ public class UserConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(Collections.singletonList("http://localhost:5174")); // http://localhost:5174
+        config.setAllowedOrigins(Collections.singletonList(frontendUrl)); // http://localhost:5174
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(Collections.singletonList("*"));
         config.setExposedHeaders(Arrays.asList("Authorization")); // Pretty sure this would allow token to be stored in response to client

@@ -154,7 +154,7 @@ function Example() {
         <div className="w-[80%] mt-[50px] lg:mt-[0px] lg:w-[60%] flex items-center justify-center">
           <video
             className=" w-full border-[1px] border-white rounded-[20px]"
-            src="/trip-slice-desktop.mov"
+            src="https://tidier.s3.us-east-1.amazonaws.com/trip-slice-desktop.mov"
             autoPlay
             muted
             playsInline
