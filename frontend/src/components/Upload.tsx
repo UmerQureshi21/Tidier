@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import FileDetails from "./VideoDetails";
+import UploadProgressWebSocket from "./UploadProgressWebSocket";
 import type { VideoRequestDTO } from "../Types";
 import {
   clearVideoCache,
@@ -12,6 +13,8 @@ export default function Upload() {
   const [exceededUploads, setExceededUploads] = useState<boolean>(false);
   const [rateLimit, setRateLimit] = useState<boolean>(false);
   const [totalVids, setTotalVids] = useState<number>(0);
+  const [uploading, setUploading] = useState<boolean>(false);
+  const [uploadFileNames, setUploadFileNames] = useState<string[]>([]);
 
   async function loadVideos() {
     try {
@@ -36,7 +39,11 @@ export default function Upload() {
       try {
         if (e.target.files.length <= 5 && totalVids < 15) {
           setExceededUploads(false);
+          const names = Array.from(e.target.files).map((f) => f.name);
+          setUploadFileNames(names);
+          setUploading(true);
           const uploadSuccessful: boolean = await uploadVideos(e.target.files);
+          setUploading(false);
           if (uploadSuccessful) {
             setRateLimit(false);
             clearVideoCache(); // Clear cache so fresh data is fetched
@@ -51,6 +58,7 @@ export default function Upload() {
         // do errror handling for limit exceeded
       } catch (err) {
         console.error("Error uploading videos:", err);
+        setUploading(false);
       }
     }
   }
@@ -97,6 +105,9 @@ export default function Upload() {
           <div className="flex flex-col items-center w-full "></div>
         </div>
       </div>
+      {uploading && (
+        <UploadProgressWebSocket fileNames={uploadFileNames} />
+      )}
       <div>
         <div className="w-full   bg-black  flex flex-col items-center  ">
           {prevFiles.length > 0 ? (

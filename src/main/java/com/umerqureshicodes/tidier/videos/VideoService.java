@@ -9,8 +9,10 @@ import com.umerqureshicodes.tidier.montages.Montage;
 import com.umerqureshicodes.tidier.s3.S3Service;
 import com.umerqureshicodes.tidier.users.AppUser;
 import com.umerqureshicodes.tidier.users.UserRepo;
+import com.umerqureshicodes.tidier.WebSocket.WebSocketServiceMessage;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,14 +29,20 @@ public class VideoService {
     private final FFmpegService ffmpegService;
     private final UserRepo userRepo;
     private final LimitService limitService;
+    private final SimpMessagingTemplate messagingTemplate;
     @Autowired
-    public VideoService(VideoRepo videoRepo, S3Service s3Service, TwelveLabsService twelveLabsService, FFmpegService ffmpegService, UserRepo userRepo, LimitService limitService) {
+    public VideoService(VideoRepo videoRepo, S3Service s3Service, TwelveLabsService twelveLabsService, FFmpegService ffmpegService, UserRepo userRepo, LimitService limitService, SimpMessagingTemplate messagingTemplate) {
         this.videoRepo = videoRepo;
         this.s3Service = s3Service;
         this.twelveLabsService = twelveLabsService;
         this.ffmpegService = ffmpegService;
         this.userRepo = userRepo;
         this.limitService = limitService;
+        this.messagingTemplate = messagingTemplate;
+    }
+
+    private void notify(String videoName, String stage) {
+        messagingTemplate.convertAndSend("/topic/upload-progress", new WebSocketServiceMessage(videoName, stage));
     }
 
     public File convertToMp4(MultipartFile multipartFile) throws IOException, InterruptedException {
@@ -112,6 +120,7 @@ public class VideoService {
 
             try {
                 // Upload to TwelveLabs
+                notify(entry.getKey(), "uploading");
                 Video uploadedVid = uploadToTwelveLabsAndSave(
                         entry.getValue(),
                         entry.getKey(),
@@ -119,12 +128,14 @@ public class VideoService {
                 );
 
                 // Upload to S3 USING FILE
+                notify(entry.getKey(), "indexing");
                 s3Service.putObject(
                         "tidier",
                         this.getS3Name(uploadedVid),
                         entry.getValue()
                 );
 
+                notify(entry.getKey(), "saved");
                 responses.add(
                         new VideoResponseDTO(
                                 uploadedVid.getName(),
