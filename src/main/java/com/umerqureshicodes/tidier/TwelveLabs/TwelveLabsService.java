@@ -26,18 +26,19 @@ public class TwelveLabsService {
                 .field("video_file", videoFile)
                 .asString();
 
+        System.out.println("RESPONSE BODY: "+ response.getBody());
+
+        if(response.getStatus() != 200 && response.getStatus() != 201) {
+            System.out.println("Error in 12Labs Service's indexVideo method: " + response.getStatus() + " " + response.getBody());
+            return null;
+        }
+
         // Need to use ObjectMapper because the response class uses @JsonProperty
         ObjectMapper mapper = new ObjectMapper();
         TwelveLabsTaskResponse body =
                 mapper.readValue(response.getBody(), TwelveLabsTaskResponse.class);
-        if(response.getStatus() == 200 || response.getStatus() == 201) {
-            System.out.println("Video properly uploaded to 12 labs index! "+ body);
-            return body;
-        }
-        else{
-            System.out.println("Error in 12Labs Service's indexVideo method: " + response.getStatus() + " " + response.getStatusText());
-            return null;
-        }
+        System.out.println("Video properly uploaded to 12 labs index! "+ body);
+        return body;
     }
 
     public TwelveLabsTimeStampResponse getIntervalsOfTopic(String videoId, String topic) {

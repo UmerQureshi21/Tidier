@@ -74,3 +74,7 @@ src/main/resources/application-secrets.properties
 
 .DS_Store
 frontend/public/trip-slice-desktop.mov
+.claude
+application.properties
+
+

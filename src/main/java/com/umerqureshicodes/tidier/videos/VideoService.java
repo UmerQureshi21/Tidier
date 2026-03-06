@@ -157,7 +157,7 @@ public class VideoService {
                 System.out.println("User not found");
                 return null;
             }
-            Video video = new Video(videoData.videoId() ,filename, user.get());
+            Video video = new Video(videoData.id() ,filename, user.get());
             videoRepo.save(video);
             return video;
         }
