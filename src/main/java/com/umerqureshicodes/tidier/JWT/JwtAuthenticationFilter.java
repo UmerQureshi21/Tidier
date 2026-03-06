@@ -65,15 +65,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 // Set refresh token in HttpOnly Cookie
             // We can also send it in response body but then client has to store in memory or in local storage
-            Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
-            refreshCookie.setHttpOnly(true); // prevent javascript from accessing
-                boolean isLocalhost = request.getServerName().equals("localhost") ||
+            boolean isLocalhost = request.getServerName().equals("localhost") ||
                         request.getServerName().equals("127.0.0.1");
-                refreshCookie.setSecure(!isLocalhost);
-                refreshCookie.setPath("/refresh-token"); // Cookie available only for refresh endpoint
-                refreshCookie .setMaxAge(7*24*60*60);
 
-                response.addCookie(refreshCookie);
+                // Use Set-Cookie header directly to support SameSite attribute
+                StringBuilder cookieBuilder = new StringBuilder();
+                cookieBuilder.append("refreshToken=").append(refreshToken);
+                cookieBuilder.append("; HttpOnly");
+                cookieBuilder.append("; Path=/refresh-token");
+                cookieBuilder.append("; Max-Age=").append(7 * 24 * 60 * 60);
+                if (!isLocalhost) {
+                    cookieBuilder.append("; Secure");
+                    cookieBuilder.append("; SameSite=None");
+                } else {
+                    cookieBuilder.append("; SameSite=Lax");
+                }
+                response.addHeader("Set-Cookie", cookieBuilder.toString());
             }
 
         } catch (Exception ex) {
