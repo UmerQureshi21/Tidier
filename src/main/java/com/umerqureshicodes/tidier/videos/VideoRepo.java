@@ -22,6 +22,8 @@ public interface VideoRepo extends JpaRepository<Video, Long> {
 
     Optional<Video> findByIdAndUserUsername(Long id, String username);
 
+    Optional<Video> findByVideoIdAndUserUsername(String videoId, String username);
+
     Optional<Video> findByUserUsernameAndName(String email, String name);
 
 }

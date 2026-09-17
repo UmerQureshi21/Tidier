@@ -48,7 +48,7 @@ axiosInstance.interceptors.response.use(
       } catch (refreshError) {
         // Refresh failed, clear token and redirect to login
         tokenManager.clearToken();
-        window.location.href = "/login";
+        window.location.href = "/account";
         return Promise.reject(refreshError);
       }
     }

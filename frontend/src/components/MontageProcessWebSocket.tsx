@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRef, useEffect } from "react";
 
 import * as StompJs from "@stomp/stompjs";
+import { createProgressClient } from "../services/progressSocket";
 
 interface Step {
   label: string;
@@ -24,58 +25,43 @@ function getStepIndex(message: string): number {
 }
 
 export default function MontageProgressWebSocket() {
-  const full = import.meta.env.VITE_BACKEND_URL;
-  const host = full.replace(/^https?:\/\//, "");
   const [steps, setSteps] = useState<Step[]>(INITIAL_STEPS);
   const [logs, setLogs] = useState<string[]>([]);
   const clientRef = useRef<StompJs.Client | null>(null);
 
   useEffect(() => {
-    const client = new StompJs.Client({
-      brokerURL: `ws://${host}/gs-guide-websocket`,
-      reconnectDelay: 2000,
-      debug: (str) => console.log(str),
-      onConnect: (frame) => {
-        console.log("We have connected to this frame: " + frame);
+    const client = createProgressClient("montage-progress", (body) => {
+      const msg: string = body.content;
 
-        client.subscribe("/topic/montage-progress", (message) => {
-          const body = JSON.parse(message.body);
-          const msg: string = body.content;
+      setLogs((prev) => [...prev, msg]);
 
-          setLogs((prev) => [...prev, msg]);
+      const stepIdx = getStepIndex(msg);
+      if (stepIdx >= 0) {
+        setSteps((prev) =>
+          prev.map((step, i) => {
+            if (i < stepIdx) return { ...step, status: "completed" };
+            if (i === stepIdx) {
+              // Final step becomes completed immediately
+              if (stepIdx === 3) return { ...step, status: "completed" };
+              return { ...step, status: "active" };
+            }
+            return step;
+          })
+        );
+      }
 
-          const stepIdx = getStepIndex(msg);
-          if (stepIdx >= 0) {
-            setSteps((prev) =>
-              prev.map((step, i) => {
-                if (i < stepIdx) return { ...step, status: "completed" };
-                if (i === stepIdx) {
-                  // Final step becomes completed immediately
-                  if (stepIdx === 3) return { ...step, status: "completed" };
-                  return { ...step, status: "active" };
-                }
-                return step;
-              })
-            );
-          }
-
-          if (body.montagePath) {
-            clientRef.current?.deactivate();
-            console.log("Montage path: " + body.montagePath);
-          }
-        });
-      },
-      onWebSocketError: (error) => {
-        console.error("Error with websocket", error);
-      },
-      onStompError: (frame) => {
-        console.error("Broker error: " + frame.headers["message"]);
-        console.error("Details: " + frame.body);
-      },
+      if (body.montagePath) {
+        clientRef.current?.deactivate();
+        console.log("Montage path: " + body.montagePath);
+      }
     });
 
     clientRef.current = client;
     clientRef.current.activate();
+
+    return () => {
+      clientRef.current?.deactivate();
+    };
   }, []);
 
   const completedCount = steps.filter((s) => s.status === "completed").length;
