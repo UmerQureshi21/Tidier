@@ -2,11 +2,11 @@ package com.umerqureshicodes.tidier.JWT;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -30,32 +30,27 @@ public class JwtRefreshFilter extends OncePerRequestFilter {
         }
 
         // Extracts the 7-day-long token from the Cookie,
-        String refreshToken = extractJwtFromRequest(request);
+        String refreshToken = JwtUtil.extractRefreshToken(request);
         if (refreshToken == null) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
         //Provider that validates token, it wraps the refresh token in JwtAuthToken class
-        JwtAuthenticationToken authenticationToken = new JwtAuthenticationToken(refreshToken);
+        JwtAuthenticationToken authenticationToken = new JwtAuthenticationToken(refreshToken, JwtUtil.TokenType.REFRESH);
         // Pass to manager
-        Authentication authResult = authenticationManager.authenticate(authenticationToken);
+        Authentication authResult;
+        try {
+            authResult = authenticationManager.authenticate(authenticationToken);
+        } catch (AuthenticationException e) {
+            // Invalid, expired or revoked (logged out) refresh token
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         if(authResult.isAuthenticated()) {
 
             // If valid, we generate a new access token
-            String newToken = jwtUtil.generateToken(authResult.getName(),15);
+            String newToken = jwtUtil.generateToken(authResult.getName(), 15, JwtUtil.TokenType.ACCESS);
             response.setHeader("Authorization", "Bearer " + newToken);
         }
-    }
-
-    private String extractJwtFromRequest(HttpServletRequest request) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies == null) {return  null;}
-        String refreshToken = null;
-        for (Cookie cookie : cookies) {
-            if(JwtUtil.REFRESH_COOKIE_NAME.equals(cookie.getName())) { // The name that we put in the cookie, in Auth filter
-                refreshToken = cookie.getValue();
-            }
-        }
-        return refreshToken;
     }
 }

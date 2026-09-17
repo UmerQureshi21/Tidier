@@ -57,11 +57,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 
             if(authResult.isAuthenticated()) {
-            String token = jwtUtil.generateToken(authResult.getName(), 1);
+            String token = jwtUtil.generateToken(authResult.getName(), 1, JwtUtil.TokenType.ACCESS);
                 System.out.println("Access token generated: " + token);
                 response.setHeader("Authorization", "Bearer " + token) ;
 
-            String refreshToken = jwtUtil.generateToken(authResult.getName(), 7*24*60);
+            String refreshToken = jwtUtil.generateToken(authResult.getName(), 7*24*60, JwtUtil.TokenType.REFRESH);
 
                 // Set refresh token in HttpOnly Cookie
             // We can also send it in response body but then client has to store in memory or in local storage

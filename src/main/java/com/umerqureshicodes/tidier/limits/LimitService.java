@@ -10,6 +10,8 @@ public class LimitService {
 
     private final LimitRepo limitRepo;
     private final long maxMillis = 600L * 60L * 1000L; // 600 minutes
+    // TwelveLabs' free plan minutes are cumulative and don't come back when videos are deleted,
+    // so this total is never decreased
 
     // I AM TESTING RUG
 

@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -23,10 +24,16 @@ public class JwtValidationFilter extends OncePerRequestFilter {
 
         String token = extractJwtFromRequest(request);
         if (token != null) {
-            JwtAuthenticationToken authenticationToken = new JwtAuthenticationToken(token); // Dao cannot access, so I added another in user config
-            Authentication authResult = authenticationManager.authenticate(authenticationToken);
-            if(authResult.isAuthenticated()) {
-                SecurityContextHolder.getContext().setAuthentication(authResult);
+            JwtAuthenticationToken authenticationToken = new JwtAuthenticationToken(token, JwtUtil.TokenType.ACCESS); // Dao cannot access, so I added another in user config
+            try {
+                Authentication authResult = authenticationManager.authenticate(authenticationToken);
+                if(authResult.isAuthenticated()) {
+                    SecurityContextHolder.getContext().setAuthentication(authResult);
+                }
+            } catch (AuthenticationException e) {
+                // Expired or invalid access token, the frontend refreshes on 401 and retries
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
             }
         }
         filterChain.doFilter(request, response);

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { NavLink } from "react-router";
 import PopUp from "./PopUp";
 import NavBarLink from "./NavBarLink";
+import Logout from "./Logout";
 
 export default function Navbar() {
   const [clientWidth, setClientWidth] = useState<number>(window.innerWidth);
@@ -15,7 +16,7 @@ export default function Navbar() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const linkWidth = 15;
+  const linkWidth = 14;
   const linkFont = 12;
   const allignment = "center";
   const colour = "#925cfe";
@@ -68,7 +69,7 @@ export default function Navbar() {
         {clientWidth < 900 ? (
           <PopUp />
         ) : (
-          <div className="w-[55%]  relative right-[20px] flex items-center justify-between">
+          <div className="w-[60%]  relative right-[20px] flex items-center justify-between">
             {pages.map((page, index) => (
               <NavBarLink
                 key={`nav bar link ${index}`}
@@ -80,6 +81,7 @@ export default function Navbar() {
                 colour={colour}
               />
             ))}
+            <Logout fontSize={linkFont} colour={colour} />
           </div>
         )}
       </div>
