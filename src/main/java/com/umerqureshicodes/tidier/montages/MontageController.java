@@ -2,11 +2,13 @@ package com.umerqureshicodes.tidier.montages;
 
 import com.umerqureshicodes.tidier.users.AppUser;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 public class MontageController {
@@ -19,6 +21,11 @@ public class MontageController {
     @PostMapping("/montages")
     public MontageResponseDTO createMontage(@RequestBody MontageRequestDTO montageRequestDTO, @AuthenticationPrincipal AppUser appUser) {
         return montageService.createMontage(montageRequestDTO, appUser.getUsername());
+    }
+
+    @ExceptionHandler(MontageCreationException.class)
+    public ResponseEntity<Map<String, String>> handleMontageCreationException(MontageCreationException e) {
+        return ResponseEntity.unprocessableEntity().body(Map.of("error", e.getMessage()));
     }
 
     @DeleteMapping("/montages/{id}")

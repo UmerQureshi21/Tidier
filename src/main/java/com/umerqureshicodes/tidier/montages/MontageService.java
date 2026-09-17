@@ -72,14 +72,12 @@ public class MontageService {
     public MontageResponseDTO createMontage(MontageRequestDTO montageRequestDTO, String email) {
 
         if(montageRepo.findAllByUserUsername(email).size() >= 10){
-            System.out.println("Montage limit reached");
-            return null;
+            throw new MontageCreationException("You've reached the limit of 10 montages.");
         }
 
         Optional<AppUser> user = userRepo.findByUsername(email) ;
         if(user.isEmpty()) {
-            System.out.println("User not found");
-            return null;
+            throw new MontageCreationException("User not found.");
         }
 
         // Only allow videos that belong to this user
@@ -88,18 +86,21 @@ public class MontageService {
             Optional<Video> video = videoRepo.findByVideoIdAndUserUsername(v.getVideoId(), email);
             if (video.isEmpty()) {
                 System.out.println("Video " + v.getVideoId() + " not found for user");
-                return null;
+                throw new MontageCreationException("One of the selected videos could not be found.");
             }
             selectedVideos.add(video.get());
         }
 
         MontageBuild build = new MontageBuild();
         Map<Video, String> timestamps = analyzeVideoWithPrompt(selectedVideos, montageRequestDTO, email);
+        if (timestamps.isEmpty()) {
+            throw new MontageCreationException("Couldn't analyze the selected videos right now. Please try again later.");
+        }
         // Unique key so montages with the same name (or users with similar emails) never overwrite each other
         String s3Key = "montages/" + user.get().getId() + "/" + UUID.randomUUID() + ".mp4";
         int ffmpegCode = 1;
         try {
-            if (trimVideos(timestamps, build, email)) {
+            if (trimVideos(timestamps, build, email, montageRequestDTO.prompt())) {
                 ffmpegCode = combineVideos(build.trimmedFiles, s3Key, email);
             }
         } finally {
@@ -110,7 +111,7 @@ public class MontageService {
 
         if(ffmpegCode != 0) {
             System.out.println("ERROR EXIT CODE: "+ffmpegCode);
-            return null;
+            throw new MontageCreationException("Something went wrong while creating the montage. Please try again.");
         }
 
         Montage montage = new Montage(montageRequestDTO.name(),montageRequestDTO.prompt(), user.get(), build.duration);
@@ -140,7 +141,8 @@ public class MontageService {
     }
 
     // Trims every interval into its own temp file (added to build.trimmedFiles), returns false if something failed
-    private boolean trimVideos(Map<Video, String> timestamps, MontageBuild build, String userEmail) {
+    // and throws if none of the videos contain the topic
+    private boolean trimVideos(Map<Video, String> timestamps, MontageBuild build, String userEmail, String topic) {
         for (Map.Entry<Video, String> entry : timestamps.entrySet()) {
             Video video = entry.getKey();
             // A video with no instance of the topic comes back as 00:00-00:00, which is skipped here
@@ -188,8 +190,7 @@ public class MontageService {
         }
 
         if (build.trimmedFiles.isEmpty()) {
-            notify(userEmail, "No moments matching the topic were found", null);
-            return false;
+            throw new MontageCreationException("No moments matching \"" + topic + "\" were found in the selected videos.");
         }
         notify(userEmail, "Finished trimming videos...", null);
         return true;

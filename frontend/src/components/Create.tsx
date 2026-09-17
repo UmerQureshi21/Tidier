@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import axios from "axios";
 import type { VideoRequestDTO, MontageResponseDTO } from "../Types";
 import SelectableFileDetails from "./VideoDetailsSelectable";
 import MontageProgressWebSocket from "./MontageProcessWebSocket";
@@ -15,6 +16,26 @@ export default function UploadCopy() {
   let [title, setTitle] = useState<string>("");
   const [preSignedUrl, setPreSignedUrl] = useState<string>("");
   const [montageName, setMontageName] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [showingError, setShowingError] = useState<boolean>(false);
+  const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear the pending redirect if the page is left
+  useEffect(() => {
+    return () => {
+      if (redirectTimer.current) clearTimeout(redirectTimer.current);
+    };
+  }, []);
+
+  // Show the error on the progress screen, then go back to the form (the error stays visible there)
+  function failMontage(message: string) {
+    setErrorMessage(message);
+    setShowingError(true);
+    redirectTimer.current = setTimeout(() => {
+      setShowingError(false);
+      isMontageSubmitted(false);
+    }, 3000);
+  }
 
   async function loadVideos() {
     try {
@@ -27,6 +48,7 @@ export default function UploadCopy() {
 
   async function handleSubmit() {
     try {
+      setErrorMessage("");
       isMontageSubmitted(true);
       let montageData: MontageResponseDTO = await createMontage(
         prevFiles,
@@ -34,15 +56,21 @@ export default function UploadCopy() {
         title,
         sentence
       );
-      if (montageData != null) {
+      if (montageData) {
         setPreSignedUrl(montageData.preSignedUrl);
         setMontageName(montageData.name);
         isMontageFinished(true);
       } else {
-        console.log("Max montage limit reached");
+        failMontage("Something went wrong while creating the montage.");
       }
     } catch (err) {
       console.error("Montage upload failed my bro:", err);
+      // The backend sends { error: "..." } when a montage can't be made, e.g. no matching moments
+      const message =
+        axios.isAxiosError(err) && err.response?.data?.error
+          ? err.response.data.error
+          : "Something went wrong while creating the montage. Please try again.";
+      failMontage(message);
     }
   }
 
@@ -75,12 +103,29 @@ export default function UploadCopy() {
             Create Another Montage!
           </button>
         </>
+      ) : montageSubmitted && showingError ? (
+        <div className="w-full bg-black min-h-[700px] py-16 flex flex-col items-center justify-center gap-6 poppins-font text-center">
+          <div className="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center text-white text-[28px] font-bold">
+            !
+          </div>
+          <p className="text-red-400 text-[22px] w-[80%] max-w-[500px]">
+            {errorMessage}
+          </p>
+          <p className="text-gray-400 text-sm">
+            Taking you back to the create page...
+          </p>
+        </div>
       ) : montageSubmitted ? (
         <div className="w-full bg-black pb-[50px]">
           <MontageProgressWebSocket />
         </div>
       ) : (
         <div className="w-full bg-black flex flex-col items-center gap-[50px]">
+          {errorMessage !== "" && (
+            <div className="w-[90%] md:w-[65%] rounded-[20px] border border-red-500 bg-red-500/10 px-[20px] py-[15px] poppins-font text-red-400 text-center">
+              {errorMessage}
+            </div>
+          )}
           {/* Desktop Layout */}
           <div className="hidden md:flex text-white bg-[rgb(20,20,20)] pt-[50px] poppins w-[65%] rounded-[20px] flex-col items-center justify-center pb-[50px]">
             <div className="flex flex-col items-center w-full gap-[20px]">
@@ -93,6 +138,7 @@ export default function UploadCopy() {
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     setSentence(e.target.value);
                   }}
+                  value={sentence}
                   autoFocus
                   className="flex-1 outline-none border-b-[1px] border-b-[#925cfe] pb-[3px] bg-transparent"
                   style={{ caretColor: "#925cfe" }}
@@ -107,6 +153,7 @@ export default function UploadCopy() {
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     setTitle(e.target.value);
                   }}
+                  value={title}
                   autoFocus
                   className="flex-1 outline-none border-b-[1px] border-b-[#925cfe] pb-[3px] bg-transparent"
                   style={{ caretColor: "#925cfe" }}
@@ -150,6 +197,7 @@ export default function UploadCopy() {
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     setSentence(e.target.value);
                   }}
+                  value={sentence}
                   autoFocus
                   className="outline-none border-b-[1px] border-b-[#925cfe] pb-[8px] bg-transparent text-white"
                   style={{ caretColor: "#925cfe" }}
@@ -162,6 +210,7 @@ export default function UploadCopy() {
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     setTitle(e.target.value);
                   }}
+                  value={title}
                   autoFocus
                   className="outline-none border-b-[1px] border-b-[#925cfe] pb-[8px] bg-transparent text-white"
                   style={{ caretColor: "#925cfe" }}
