@@ -46,7 +46,7 @@ public class UserService implements UserDetailsService {
         if(prevUserWithSameEmail.isPresent()) {
             return false;
         }
-        Optional<AppUser> prevUserWithSameName = userRepo.findByUsername(userRequestDTO.displayedName()) ;
+        Optional<AppUser> prevUserWithSameName = userRepo.findByDisplayedName(userRequestDTO.displayedName()) ;
         if(prevUserWithSameName.isPresent()) {
             return false;
         }

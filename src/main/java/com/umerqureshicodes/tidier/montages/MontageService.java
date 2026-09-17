@@ -21,6 +21,8 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.file.*;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class MontageService {
@@ -33,8 +35,16 @@ public class MontageService {
     private final S3Service s3Service;
     private final TwelveLabsService twelveLabsService;
     private final SimpMessagingTemplate messagingTemplate;
-    int duration = 0;
-    HashMap<String,Boolean> hasTimestamps = new HashMap<>();
+    // Matches intervals like 00:04-00:08 in the TwelveLabs answer
+    private static final Pattern INTERVAL_PATTERN = Pattern.compile("(\\d{1,2}):(\\d{2})\\s*-\\s*(\\d{1,2}):(\\d{2})");
+
+    // State for a single montage request. The service is shared by all requests, so this can't be stored in fields
+    private static class MontageBuild {
+        int duration = 0;
+        final List<Video> videosUsed = new ArrayList<>();
+        final List<Path> trimmedFiles = new ArrayList<>();
+    }
+
     public MontageService(MontageRepo montageRepo, VideoService videoService, S3Service s3Service, TwelveLabsService twelveLabsService, SimpMessagingTemplate messagingTemplate, FFmpegService fFmpegService, UserRepo userRepo, VideoRepo videoRepo) {
         this.montageRepo = montageRepo;
         this.videoService = videoService;
@@ -46,15 +56,15 @@ public class MontageService {
         this.videoRepo = videoRepo;
     }
 
-    private void notify(String message, String montagePath) {
-        // Push message to all clients subscribed to /topic/montage-progress
-        messagingTemplate.convertAndSend("/topic/montage-progress", new WebSocketServiceMessage(message, montagePath));
+    private void notify(String userEmail, String message, String montagePath) {
+        // Only sent to the user who created the montage, they subscribe to /user/queue/montage-progress
+        messagingTemplate.convertAndSendToUser(userEmail, "/queue/montage-progress", new WebSocketServiceMessage(message, montagePath));
     }
 
     public MontageResponseDTO convertToDTO(Montage montage, String montageUrl) {
         List<VideoResponseDTO> videoResponseDTOs = new ArrayList<>();
         for (Video video: montage.getVideos()){
-            videoResponseDTOs.add(new VideoResponseDTO(video.getVideoId(),video.getName()));
+            videoResponseDTOs.add(new VideoResponseDTO(video.getName(),video.getVideoId()));
         }
         return new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt(), montage.getCreatedAt(), montage.getDuration(),montageUrl);
     }
@@ -66,154 +76,160 @@ public class MontageService {
             return null;
         }
 
-
-        duration = 0; // Reset
-        for (VideoRequestDTO videoRequestDTO: montageRequestDTO.videoRequestDTOs()){
-            hasTimestamps.put(videoRequestDTO.getName(),true);
-        }
         Optional<AppUser> user = userRepo.findByUsername(email) ;
         if(user.isEmpty()) {
             System.out.println("User not found");
             return null;
         }
-        System.out.println("final duration : "+duration);
-       Montage montage = new Montage(montageRequestDTO.name(),montageRequestDTO.prompt(), user.get(), 0);
-       int ffmpegCode = combineVideos(trimVideos(analyzeVideoWithPrompt(montageRequestDTO),montageRequestDTO.videoRequestDTOs(),email),montageRequestDTO.name(),email);
-       if(ffmpegCode == 0) {
-           List<String> videoIds = new ArrayList<>();
-           for (VideoRequestDTO v : montageRequestDTO.videoRequestDTOs()) {
-               if(hasTimestamps.get(v.getName())) {
-                   videoIds.add(v.getVideoId());
-               }
-           }
-           List<Video> videosInMontage = videoService.getVideosByVideoIds(videoIds);
-           // Adds this montage to each video in db that contains intervals
-           for (Video v : videosInMontage) {
-               videoService.updateVideo(v,montage);
-           }
-           // this can surely be put into one for loop
-           montage.setVideos(videosInMontage);
-           montage.setDuration(duration);
-           String preSignedUrl = s3Service.generatePresignedGetUrl("tidier",getS3Name(montageRequestDTO.name(),email) ).toString() ;
-           notify(montageRequestDTO.name() +" created!", preSignedUrl);
-           // add topic to send montage path to tsx component
-           System.out.println(montageRequestDTO.name() +" created!");
-           return convertToDTO(montageRepo.save(montage),preSignedUrl);
-       }
-       else{
-           System.out.println("ERROR EXIT CODE: "+ffmpegCode);
-           return null;
-       }
 
-    }
-    //https://docs.twelvelabs.io/v1.3/api-reference/analyze-videos/analyze
-    public List<String> analyzeVideoWithPrompt(MontageRequestDTO montageRequestDTO) {
-        List<String> timestamps = new ArrayList<>();
-        for(VideoRequestDTO v : montageRequestDTO.videoRequestDTOs()) {
-            TwelveLabsTimeStampResponse response = twelveLabsService.getIntervalsOfTopic(v.getVideoId(), montageRequestDTO.sentence());
-            if (response != null) {
-                timestamps.add(response.data());
-                notify("Successfully extracted " + montageRequestDTO.prompt() + " from " + v.getName(), null);
+        // Only allow videos that belong to this user
+        List<Video> selectedVideos = new ArrayList<>();
+        for (VideoRequestDTO v : montageRequestDTO.videoRequestDTOs()) {
+            Optional<Video> video = videoRepo.findByVideoIdAndUserUsername(v.getVideoId(), email);
+            if (video.isEmpty()) {
+                System.out.println("Video " + v.getVideoId() + " not found for user");
+                return null;
             }
-           // notify("Successfully extracted " + montageRequestDTO.prompt() + " from " + v.getName(), null);
-          //  timestamps.add("00:00-00:02"); // ONLY ADDING THIS BECAUSE I HIT RATE LIMIT
+            selectedVideos.add(video.get());
+        }
+
+        MontageBuild build = new MontageBuild();
+        Map<Video, String> timestamps = analyzeVideoWithPrompt(selectedVideos, montageRequestDTO, email);
+        // Unique key so montages with the same name (or users with similar emails) never overwrite each other
+        String s3Key = "montages/" + user.get().getId() + "/" + UUID.randomUUID() + ".mp4";
+        int ffmpegCode = 1;
+        try {
+            if (trimVideos(timestamps, build, email)) {
+                ffmpegCode = combineVideos(build.trimmedFiles, s3Key, email);
+            }
+        } finally {
+            for (Path trimmedFile : build.trimmedFiles) {
+                deleteQuietly(trimmedFile);
+            }
+        }
+
+        if(ffmpegCode != 0) {
+            System.out.println("ERROR EXIT CODE: "+ffmpegCode);
+            return null;
+        }
+
+        Montage montage = new Montage(montageRequestDTO.name(),montageRequestDTO.prompt(), user.get(), build.duration);
+        montage.setS3Key(s3Key);
+        // Only the videos that clips were actually taken from, this also adds the montage to each video
+        montage.setVideos(build.videosUsed);
+        Montage savedMontage = montageRepo.save(montage);
+
+        String preSignedUrl = s3Service.generatePresignedGetUrl("tidier", s3Key).toString();
+        notify(email, montageRequestDTO.name() +" created!", preSignedUrl);
+        System.out.println(montageRequestDTO.name() +" created!");
+        return convertToDTO(savedMontage, preSignedUrl);
+    }
+
+    //https://docs.twelvelabs.io/v1.3/api-reference/analyze-videos/analyze
+    // Returns the raw interval text for each video that TwelveLabs answered for
+    public Map<Video, String> analyzeVideoWithPrompt(List<Video> videos, MontageRequestDTO montageRequestDTO, String email) {
+        Map<Video, String> timestamps = new LinkedHashMap<>();
+        for(Video video : videos) {
+            TwelveLabsTimeStampResponse response = twelveLabsService.getIntervalsOfTopic(video.getVideoId(), montageRequestDTO.sentence());
+            if (response != null && response.data() != null) {
+                timestamps.put(video, response.data());
+                notify(email, "Successfully extracted " + montageRequestDTO.prompt() + " from " + video.getName(), null);
+            }
         }
         return timestamps;
     }
 
-    private int getIntervalDuration(String start, String end) {
-        return Integer.parseInt(end.split(":")[0]) * 60 + Integer.parseInt(end.split(":")[1])
-                - (Integer.parseInt(start.split(":")[0]) * 60 + Integer.parseInt(start.split(":")[1]));
-    }
-
-    public List<String> trimVideos(List<String> timeStamps, List<VideoRequestDTO> videoRequestDTOs, String userEmail) {
-
-        List<HashMap<String,String>> intervals = new ArrayList<>();
-        List<String> trimmedVideosToCombine = new ArrayList<>();
-        //timestamps in format of [[00:00-00:04, 00:04-00:08, 00:11-00:13],[00:01-00:03, 00:10-00:12]]
-        for (int i = 0; i < timeStamps.size(); i++) {
-            for(String timeStamp : timeStamps.get(i).split(", ")) {
-                    HashMap<String,String> interval = new HashMap<>();
-                    String[] times = timeStamp.split("-");
-                    duration += this.getIntervalDuration(times[0],times[1]);
-                    System.out.println("duration: " + duration);
-                    interval.put("start", "00:"+times[0]+".000");
-                    interval.put("end", "00:"+times[1]+".000");
-                    interval.put("video",videoRequestDTOs.get(i).getName());
-                    intervals.add(interval);
-            }
-        }
-        int i = 0;
-        for(HashMap<String,String> interval : intervals)
-        {
-            System.out.println(interval.get("start")+" "+interval.get("end")+" "+interval.get("video"));
-            if (!interval.get("start").equals(interval.get("end"))) {
-                try {
-                    Optional<Video> vid = videoRepo.findByUserUsernameAndName(userEmail,interval.get("video"));
-                    if (!vid.isPresent()) {
-                        System.out.println("User email doesn't exist!");
-                        return null;
-                    }
-                    URL videoUrl = s3Service.generatePresignedGetUrl("tidier", videoService.getS3Name(vid.get()));
-                    System.out.println(videoUrl.toString());
-                    File inputTempFile = downloadPresignedUrlToTempFile(videoUrl.toString());
-                    String trimmedVideoName = interval.get("video") + "-trimmed-" + UUID.randomUUID().toString() + ".mp4";
-                    trimmedVideosToCombine.add(trimmedVideoName);
-                    //Problem is that I'm pretty sure the local version ffmpeg creates the file, but for the cloud one i made the file before which didnt work
-                    Path tempPath = Paths.get(System.getProperty("java.io.tmpdir"), trimmedVideoName);
-                    int exitCode = fFmpegService.trimVideo( inputTempFile.getAbsolutePath(), tempPath.toString(),interval.get("start"),interval.get("end"));
-                    System.out.println("FFmpeg finished with exit code " + exitCode);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    System.out.println("ERROR WAS CAUGHT: \n" + e.getMessage());
-                    return null;
+    // Trims every interval into its own temp file (added to build.trimmedFiles), returns false if something failed
+    private boolean trimVideos(Map<Video, String> timestamps, MontageBuild build, String userEmail) {
+        for (Map.Entry<Video, String> entry : timestamps.entrySet()) {
+            Video video = entry.getKey();
+            // A video with no instance of the topic comes back as 00:00-00:00, which is skipped here
+            List<int[]> intervals = new ArrayList<>();
+            Matcher matcher = INTERVAL_PATTERN.matcher(entry.getValue());
+            while (matcher.find()) {
+                int start = Integer.parseInt(matcher.group(1)) * 60 + Integer.parseInt(matcher.group(2));
+                int end = Integer.parseInt(matcher.group(3)) * 60 + Integer.parseInt(matcher.group(4));
+                if (end > start) {
+                    intervals.add(new int[]{start, end});
                 }
             }
-            else{
-                // if a video doesn't contain any instance of the topic, then 00:00 is returned.
-                // Meaning only one interval in intervals, has that video
-                System.out.println("No time stamp found in" + interval.get("video"));
-                hasTimestamps.put(interval.get("video"),false);
+            if (intervals.isEmpty()) {
+                System.out.println("No time stamp found in " + video.getName());
+                continue;
             }
-            i = i + 1;
+
+            File inputTempFile = null;
+            try {
+                // Download each source video once, not once per interval
+                URL videoUrl = s3Service.generatePresignedGetUrl("tidier", videoService.getS3Name(video));
+                inputTempFile = downloadPresignedUrlToTempFile(videoUrl.toString());
+                for (int[] interval : intervals) {
+                    System.out.println(interval[0] + " " + interval[1] + " " + video.getName());
+                    Path tempPath = Paths.get(System.getProperty("java.io.tmpdir"), "trimmed-" + UUID.randomUUID() + ".mp4");
+                    build.trimmedFiles.add(tempPath);
+                    int exitCode = fFmpegService.trimVideo(inputTempFile.getAbsolutePath(), tempPath.toString(),
+                            String.valueOf(interval[0]), String.valueOf(interval[1]));
+                    System.out.println("FFmpeg finished with exit code " + exitCode);
+                    if (exitCode != 0) {
+                        return false;
+                    }
+                    build.duration += interval[1] - interval[0];
+                }
+                build.videosUsed.add(video);
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.out.println("ERROR WAS CAUGHT: \n" + e.getMessage());
+                return false;
+            } finally {
+                if (inputTempFile != null) {
+                    deleteQuietly(inputTempFile.toPath());
+                }
+            }
         }
-        notify("Finished trimming videos...", null);
-        return trimmedVideosToCombine;
+
+        if (build.trimmedFiles.isEmpty()) {
+            notify(userEmail, "No moments matching the topic were found", null);
+            return false;
+        }
+        notify(userEmail, "Finished trimming videos...", null);
+        return true;
     }
 
-    public int combineVideos(List<String> trimmedFiles, String outputFileName, String  userEmail) {
-        notify("Combining videos...", null);
-        String tempDir = System.getProperty("java.io.tmpdir");
-        if(trimmedFiles == null) {
-            return 1;
-        }
+    public int combineVideos(List<Path> trimmedFiles, String s3Key, String userEmail) {
+        notify(userEmail, "Combining videos...", null);
         int exitCode = 100;
+        File concatFile = null;
+        Path tempPath = Paths.get(System.getProperty("java.io.tmpdir"), "montage-" + UUID.randomUUID() + ".mp4");
         try {
-            File concatFile = Files.createTempFile("videos-", ".txt").toFile();
-            Path tempPath = Paths.get(tempDir ,outputFileName+".mp4");
+            concatFile = Files.createTempFile("videos-", ".txt").toFile();
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(concatFile))) {
-                for (String fileName : trimmedFiles) {
-                    Path fullPath = Paths.get(tempDir, fileName);
-                    writer.write("file '" + fullPath.toString() + "'\n");
+                for (Path trimmedFile : trimmedFiles) {
+                    writer.write("file '" + trimmedFile.toString() + "'\n");
                 }
             }
             exitCode = fFmpegService.combineVideo(concatFile.getAbsolutePath(),tempPath.toString());
             if (exitCode == 0) {
-                for (String fileName : trimmedFiles) {
-                    Files.deleteIfExists(Paths.get(tempDir, fileName)); // ✅ correct delete path
-                }
-                Files.deleteIfExists(concatFile.toPath());
-
-                File montageFile = tempPath.toFile();
-                s3Service.putObject("tidier", getS3Name(outputFileName, userEmail), montageFile);
-
-                Files.deleteIfExists(tempPath); // optional cleanup
+                s3Service.putObject("tidier", s3Key, tempPath.toFile());
             }
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("Error: " + e.getMessage());
+            exitCode = 100;
+        } finally {
+            if (concatFile != null) {
+                deleteQuietly(concatFile.toPath());
+            }
+            deleteQuietly(tempPath);
         }
         return exitCode;
+    }
+
+    private void deleteQuietly(Path path) {
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException e) {
+            System.out.println("Failed to delete temp file " + path + ": " + e.getMessage());
+        }
     }
 
     public List<MontageResponseDTO> getMontages(String userEmail) {
@@ -226,14 +242,18 @@ public class MontageService {
                 String videoPreviewUrl = videoService.getVideoUrl(videoService.getS3Name(video));
                 videoResponseDTOs.add(new VideoResponseDTO(video.getName(),video.getVideoId(),videoPreviewUrl));
             }
-            String preSignedUrl = s3Service.generatePresignedGetUrl("tidier",getS3Name(montage.getName(),userEmail)).toString();
+            String preSignedUrl = s3Service.generatePresignedGetUrl("tidier",getS3Key(montage, userEmail)).toString();
             montageResponseDTOs.add(new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt(),montage.getCreatedAt(),montage.getDuration(),preSignedUrl));
         }
         return montageResponseDTOs;
     }
 
-    public String getS3Name(String name, String userEmail) {
-        return "montages/" + userEmail.split("@")[0] + "/" + name + ".mp4";
+    public String getS3Key(Montage montage, String userEmail) {
+        if (montage.getS3Key() != null) {
+            return montage.getS3Key();
+        }
+        // Montages created before s3Key was stored used this path
+        return "montages/" + userEmail.split("@")[0] + "/" + montage.getName() + ".mp4";
     }
 
     @Transactional
@@ -248,7 +268,7 @@ public class MontageService {
 
         // Best effort cleanup, a failure here shouldn't undo the db delete
         try {
-            s3Service.deleteObject("tidier", getS3Name(montage.getName(), userEmail));
+            s3Service.deleteObject("tidier", getS3Key(montage, userEmail));
         } catch (Exception e) {
             System.out.println("Failed to delete montage from S3: " + e.getMessage());
         }
@@ -298,7 +318,7 @@ public class MontageService {
         if(montages.isEmpty()) {
             return null;
         }
-        int max = montages.getFirst().duration();
+        int max = montages.getFirst().videos().size();
         int maxIndex = 0;
         for (int i = 1; i < montages.size(); i++) {
             int count = montages.get(i).videos().size();

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import * as StompJs from "@stomp/stompjs";
+import { createProgressClient } from "../services/progressSocket";
 
 interface VideoProgress {
   uploading: "pending" | "active" | "completed";
@@ -69,8 +70,6 @@ export default function UploadProgressWebSocket({
 }: {
   fileNames: string[];
 }) {
-  const full = import.meta.env.VITE_BACKEND_URL;
-  const host = full.replace(/^https?:\/\//, "");
   const [progress, setProgress] = useState<Record<string, VideoProgress>>(() => {
     const initial: Record<string, VideoProgress> = {};
     for (const name of fileNames) {
@@ -85,45 +84,30 @@ export default function UploadProgressWebSocket({
   const clientRef = useRef<StompJs.Client | null>(null);
 
   useEffect(() => {
-    const client = new StompJs.Client({
-      brokerURL: `ws://${host}/gs-guide-websocket`,
-      reconnectDelay: 2000,
-      debug: (str) => console.log(str),
-      onConnect: () => {
-        client.subscribe("/topic/upload-progress", (message) => {
-          const body = JSON.parse(message.body);
-          const videoName: string = body.content;
-          const stage: string = body.montagePath;
+    const client = createProgressClient("upload-progress", (body) => {
+      const videoName: string = body.content;
+      const stage = body.montagePath ?? "";
 
-          setProgress((prev) => {
-            const video = prev[videoName];
-            if (!video) return prev;
+      setProgress((prev) => {
+        const video = prev[videoName];
+        if (!video) return prev;
 
-            const updated: VideoProgress = { ...video };
-            for (const s of STAGES) {
-              if (s === stage) {
-                updated[s] = s === "saved" ? "completed" : "active";
-              } else if (STAGES.indexOf(s) < STAGES.indexOf(stage as typeof STAGES[number])) {
-                updated[s] = "completed";
-              }
-            }
-            // If saved, mark all completed
-            if (stage === "saved") {
-              updated.uploading = "completed";
-              updated.indexing = "completed";
-              updated.saved = "completed";
-            }
-            return { ...prev, [videoName]: updated };
-          });
-        });
-      },
-      onWebSocketError: (error) => {
-        console.error("Error with websocket", error);
-      },
-      onStompError: (frame) => {
-        console.error("Broker error: " + frame.headers["message"]);
-        console.error("Details: " + frame.body);
-      },
+        const updated: VideoProgress = { ...video };
+        for (const s of STAGES) {
+          if (s === stage) {
+            updated[s] = s === "saved" ? "completed" : "active";
+          } else if (STAGES.indexOf(s) < STAGES.indexOf(stage as typeof STAGES[number])) {
+            updated[s] = "completed";
+          }
+        }
+        // If saved, mark all completed
+        if (stage === "saved") {
+          updated.uploading = "completed";
+          updated.indexing = "completed";
+          updated.saved = "completed";
+        }
+        return { ...prev, [videoName]: updated };
+      });
     });
 
     clientRef.current = client;

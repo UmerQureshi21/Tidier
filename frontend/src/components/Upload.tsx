@@ -37,7 +37,7 @@ export default function Upload() {
   async function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files) {
       try {
-        if (e.target.files.length <= 5 && totalVids < 15) {
+        if (e.target.files.length <= 5 && totalVids + e.target.files.length <= 15) {
           setExceededUploads(false);
           const names = Array.from(e.target.files).map((f) => f.name);
           setUploadFileNames(names);
@@ -88,7 +88,7 @@ export default function Upload() {
           </h1>
           {exceededUploads ? (
             <h1 className="py-[15px] text-red-500 font-bold w-full text-center">
-              Can only upload up to 5 videos at a time.
+              You can upload up to 5 videos at a time, and 15 videos in total.
             </h1>
           ) : null}
           {rateLimit ? (

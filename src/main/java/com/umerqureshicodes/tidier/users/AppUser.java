@@ -43,6 +43,10 @@ public class AppUser implements UserDetails {
         this.displayedName = displayedName;
     }
 
+    public Long getId() {
+        return id;
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(); // add roles later

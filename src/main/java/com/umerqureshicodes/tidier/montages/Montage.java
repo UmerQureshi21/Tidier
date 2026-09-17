@@ -32,6 +32,7 @@ public class Montage {
     private List<Video> videos = new ArrayList<>();
     private String prompt;
     private int duration;
+    private String s3Key; // null for montages created before this was stored
 
     @CreationTimestamp
     @Temporal(TemporalType.TIMESTAMP)
@@ -56,6 +57,14 @@ public class Montage {
         this.prompt = prompt;
         this.user = user;
         this.duration = duration;
+    }
+
+    public String getS3Key() {
+        return s3Key;
+    }
+
+    public void setS3Key(String s3Key) {
+        this.s3Key = s3Key;
     }
 
     public int getDuration() {

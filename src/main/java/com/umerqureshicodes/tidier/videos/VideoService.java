@@ -41,8 +41,9 @@ public class VideoService {
         this.messagingTemplate = messagingTemplate;
     }
 
-    private void notify(String videoName, String stage) {
-        messagingTemplate.convertAndSend("/topic/upload-progress", new WebSocketServiceMessage(videoName, stage));
+    private void notify(String userEmail, String videoName, String stage) {
+        // Only sent to the user who is uploading, they subscribe to /user/queue/upload-progress
+        messagingTemplate.convertAndSendToUser(userEmail, "/queue/upload-progress", new WebSocketServiceMessage(videoName, stage));
     }
 
     public File convertToMp4(MultipartFile multipartFile) throws IOException, InterruptedException {
@@ -67,8 +68,8 @@ public class VideoService {
 
         List<Video> prevVideos =  videoRepo.findAllByUserUsername(userEmail);
 
-        if(prevVideos.size() > 15){
-            System.out.println("Max video limit reached");
+        if(prevVideos.size() + files.size() > 15){
+            System.out.println("Max video limit reached, users can have at most 15 videos");
             return null;
         }
 
@@ -85,13 +86,13 @@ public class VideoService {
             File tempFile = null;
             try {
                 if (!"video/mp4".equalsIgnoreCase(file.getContentType())) {
-                 tempFile = convertToMp4(file);
+                    tempFile = convertToMp4(file);
                 } else {
-                tempFile = Files.createTempFile("upload-", ".mp4").toFile();
-                String fileName = file.getOriginalFilename();
-                 file.transferTo(tempFile); //after transferTo, the multipart is designed to no longer be used
-                videos.put(fileName, tempFile);
+                    tempFile = Files.createTempFile("upload-", ".mp4").toFile();
+                    file.transferTo(tempFile); //after transferTo, the multipart is designed to no longer be used
                 }
+                // Both converted and original mp4 files get uploaded
+                videos.put(file.getOriginalFilename(), tempFile);
 
                 double duration = ffmpegService.checkDuration(tempFile);
                 System.out.println("Duration: " + duration);
@@ -120,7 +121,7 @@ public class VideoService {
 
             try {
                 // Upload to TwelveLabs
-                notify(entry.getKey(), "uploading");
+                notify(userEmail, entry.getKey(), "uploading");
                 Video uploadedVid = uploadToTwelveLabsAndSave(
                         entry.getValue(),
                         entry.getKey(),
@@ -128,14 +129,14 @@ public class VideoService {
                 );
 
                 // Upload to S3 USING FILE
-                notify(entry.getKey(), "indexing");
+                notify(userEmail, entry.getKey(), "indexing");
                 s3Service.putObject(
                         "tidier",
                         this.getS3Name(uploadedVid),
                         entry.getValue()
                 );
 
-                notify(entry.getKey(), "saved");
+                notify(userEmail, entry.getKey(), "saved");
                 responses.add(
                         new VideoResponseDTO(
                                 uploadedVid.getName(),
