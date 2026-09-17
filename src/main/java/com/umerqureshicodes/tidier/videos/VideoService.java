@@ -197,12 +197,29 @@ public class VideoService {
         video.getMontages().add(montage);
     }
 
-    public String deleteVideo(long id) {
-        if (videoRepo.existsById(id)) {
-            videoRepo.deleteById(id);
-            return "Video deleted";
+    @Transactional
+    public String deleteVideo(long id, String userEmail) {
+        // Only finds the video if it belongs to this user, so users can't delete each other's videos
+        Optional<Video> videoOptional = videoRepo.findByIdAndUserUsername(id, userEmail);
+        if (videoOptional.isEmpty()) {
+            return "Video not found";
         }
-        return "Video not found";
+        Video video = videoOptional.get();
+
+        // Montage owns the join table, so unlink the video from its montages before deleting it
+        for (Montage montage : video.getMontages()) {
+            montage.getVideos().remove(video);
+        }
+        videoRepo.delete(video);
+
+        // Best effort cleanup, a failure here shouldn't undo the db delete
+        try {
+            s3Service.deleteObject("tidier", this.getS3Name(video));
+        } catch (Exception e) {
+            System.out.println("Failed to delete video from S3: " + e.getMessage());
+        }
+        twelveLabsService.deleteVideo(video.getVideoId());
+        return "Video deleted";
     }
 
     public String getVideoUrl(String key) {

@@ -1,13 +1,13 @@
 import { useNavigate } from "react-router";
-import { tokenManager } from "../services/tokenManager";
+import { logout } from "../services/userService";
 
 export default function Logout() {
   const navigate = useNavigate();
 
   return (
     <button
-      onClick={() => {
-        tokenManager.clearToken();
+      onClick={async () => {
+        await logout();
         navigate("/");
       }}
       className="bg-white"

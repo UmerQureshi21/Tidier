@@ -1,6 +1,7 @@
 package com.umerqureshicodes.tidier.users;
 
 import com.umerqureshicodes.tidier.JWT.*;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -98,8 +99,17 @@ public class UserConfig {
                 .csrf(csrf -> csrf.disable())
                 .authenticationProvider(daoAuthenticationProvider)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/gs-guide-websocket/**", "/register","/login", "/generate-token", "/refresh-token").permitAll()
+                        .requestMatchers("/gs-guide-websocket/**", "/register","/login", "/generate-token", "/refresh-token", "/logout").permitAll()
                         .anyRequest().authenticated()
+                )
+                // POST /logout clears the refresh token cookie so the session can't be restored on reload
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .addLogoutHandler((request, response, authentication) ->
+                                response.addHeader("Set-Cookie", jwtUtil.buildRefreshCookie(
+                                        "", 0, JwtUtil.isLocalhost(request.getServerName()))))
+                        .logoutSuccessHandler((request, response, authentication) ->
+                                response.setStatus(HttpServletResponse.SC_OK))
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class) // generate token filter
                 .addFilterAfter(jwtValidationFilter, JwtAuthenticationFilter.class) // validate token filter

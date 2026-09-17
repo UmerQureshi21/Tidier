@@ -65,5 +65,19 @@ public class TwelveLabsService {
         }
     }
 
+    //https://docs.twelvelabs.io/v1.3/api-reference/videos/delete
+    public boolean deleteVideo(String videoId) {
+        HttpResponse<String> response =
+                Unirest.delete("https://api.twelvelabs.io/v1.3/indexes/" + indexId + "/videos/" + videoId)
+                        .header("x-api-key", apiKey)
+                        .asString();
+
+        if (response.getStatus() != 200 && response.getStatus() != 204) {
+            System.out.println("Error in 12Labs Service's deleteVideo method: " + response.getStatus() + " " + response.getBody());
+            return false;
+        }
+        return true;
+    }
+
     //public bro dont have total vidoes time  have 600 minutes for indexing
 }

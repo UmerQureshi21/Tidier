@@ -102,7 +102,13 @@ export async function restoreSession(): Promise<boolean> {
   }
 }
 
-export function logout(): void {
+export async function logout(): Promise<void> {
+  try {
+    // Backend clears the HttpOnly refresh token cookie
+    await axios.post(`${backendURL}/logout`, {}, { withCredentials: true });
+  } catch (err) {
+    console.error("Logout request failed:", err);
+  }
   tokenManager.clearToken();
   clearVideoCache();
   clearMontageCache();
