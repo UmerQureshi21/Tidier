@@ -52,7 +52,7 @@ public class JwtRefreshFilter extends OncePerRequestFilter {
         if (cookies == null) {return  null;}
         String refreshToken = null;
         for (Cookie cookie : cookies) {
-            if("refreshToken".equals(cookie.getName())) { // The name that we put in the cookie, in Auth filter
+            if(JwtUtil.REFRESH_COOKIE_NAME.equals(cookie.getName())) { // The name that we put in the cookie, in Auth filter
                 refreshToken = cookie.getValue();
             }
         }

@@ -9,6 +9,7 @@ import com.umerqureshicodes.tidier.s3.S3Service;
 import com.umerqureshicodes.tidier.users.AppUser;
 import com.umerqureshicodes.tidier.users.UserRepo;
 import com.umerqureshicodes.tidier.videos.*;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -235,20 +236,23 @@ public class MontageService {
         return "montages/" + userEmail.split("@")[0] + "/" + name + ".mp4";
     }
 
-    public String deleteMontage(Long montageId) {
-
-
-
-        // WRITE SOMETHING THAT DELETES THE MONTAGE VIDEO IN THE MONTAGES FOLDER
-        // AND ALSO RENAME EACH TRIMMED VIDEO IN A BETTER MANNER
-
-
-        if (montageId == null || !montageRepo.existsById(montageId)) {
-            return "What, not correct montage id?";
+    @Transactional
+    public String deleteMontage(Long montageId, String userEmail) {
+        // Only finds the montage if it belongs to this user, so users can't delete each other's montages
+        Optional<Montage> montageOptional = montageRepo.findByIdAndUserUsername(montageId, userEmail);
+        if (montageOptional.isEmpty()) {
+            return "Montage not found";
         }
+        Montage montage = montageOptional.get();
+        montageRepo.delete(montage);
 
-         montageRepo.deleteById(montageId);
-         return "Successfully deleted montage with id:" + montageId;
+        // Best effort cleanup, a failure here shouldn't undo the db delete
+        try {
+            s3Service.deleteObject("tidier", getS3Name(montage.getName(), userEmail));
+        } catch (Exception e) {
+            System.out.println("Failed to delete montage from S3: " + e.getMessage());
+        }
+        return "Successfully deleted montage with id:" + montageId;
     }
 
     public File downloadPresignedUrlToTempFile(String presignedUrl) throws IOException {

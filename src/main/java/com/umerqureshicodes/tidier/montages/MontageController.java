@@ -22,8 +22,8 @@ public class MontageController {
     }
 
     @DeleteMapping("/montages/{id}")
-    public String deleteMontage(@PathVariable Long id) {
-        return montageService.deleteMontage(id);
+    public String deleteMontage(@PathVariable Long id, @AuthenticationPrincipal AppUser appUser) {
+        return montageService.deleteMontage(id, appUser.getUsername());
     }
 
     @GetMapping("/montages")

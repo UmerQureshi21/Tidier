@@ -34,7 +34,7 @@ public class VideoController {
     }
 
     @DeleteMapping("/videos/{id}")
-    public String deleteVideo(@PathVariable long id) {
-        return videoService.deleteVideo(id) ;
+    public String deleteVideo(@PathVariable long id, @AuthenticationPrincipal AppUser user) {
+        return videoService.deleteVideo(id, user.getUsername());
     }
 }
