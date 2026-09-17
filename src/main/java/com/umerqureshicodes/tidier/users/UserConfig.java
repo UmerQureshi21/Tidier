@@ -69,8 +69,8 @@ public class UserConfig {
     }
 
     @Bean
-    public JwtAuthenticationProvider jwtAuthenticationProvider(JwtUtil jwtUtil, UserService userService) {
-        return new JwtAuthenticationProvider(jwtUtil, userService);
+    public JwtAuthenticationProvider jwtAuthenticationProvider(JwtUtil jwtUtil, UserService userService, TokenRevocationService tokenRevocationService) {
+        return new JwtAuthenticationProvider(jwtUtil, userService, tokenRevocationService);
     }
 
     @Bean
@@ -81,7 +81,8 @@ public class UserConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    AuthenticationManager authenticationManager,
-                                                   DaoAuthenticationProvider daoAuthenticationProvider) throws Exception {
+                                                   DaoAuthenticationProvider daoAuthenticationProvider,
+                                                   TokenRevocationService tokenRevocationService) throws Exception {
 
         // Authentication filter responsible for login
         JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(authenticationManager, jwtUtil);
@@ -99,15 +100,13 @@ public class UserConfig {
                 .csrf(csrf -> csrf.disable())
                 .authenticationProvider(daoAuthenticationProvider)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/gs-guide-websocket/**", "/register","/login", "/generate-token", "/refresh-token", "/logout").permitAll()
+                        .requestMatchers("/gs-guide-websocket/**", "/register","/login", "/generate-token", "/refresh-token", "/refresh-token/logout").permitAll()
                         .anyRequest().authenticated()
                 )
-                // POST /logout clears the refresh token cookie so the session can't be restored on reload
+                // Revokes the refresh token and clears its cookie. The URL is under the cookie's path so the browser sends it
                 .logout(logout -> logout
-                        .logoutUrl("/logout")
-                        .addLogoutHandler((request, response, authentication) ->
-                                response.addHeader("Set-Cookie", jwtUtil.buildRefreshCookie(
-                                        "", 0, JwtUtil.isLocalhost(request.getServerName()))))
+                        .logoutUrl("/refresh-token/logout")
+                        .addLogoutHandler(new JwtLogoutHandler(jwtUtil, tokenRevocationService))
                         .logoutSuccessHandler((request, response, authentication) ->
                                 response.setStatus(HttpServletResponse.SC_OK))
                 )

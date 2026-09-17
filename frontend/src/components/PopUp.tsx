@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import NavBarLink from "./NavBarLink";
+import Logout from "./Logout";
 
 export default function PopUp() {
   const clientHeight = window.outerHeight;
@@ -130,6 +131,11 @@ export default function PopUp() {
               />
             </div>
           ))}
+          <Logout
+            fontSize={fontSize}
+            colour={linkColour}
+            onLoggedOut={() => setClicked(false)}
+          />
         </div>
 
         {/* Footer accent */}
