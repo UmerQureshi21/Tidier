@@ -24,6 +24,10 @@ public interface VideoRepo extends JpaRepository<Video, Long> {
 
     Optional<Video> findByVideoIdAndUserUsername(String videoId, String username);
 
+    // Videos that aren't searchable yet, including ones uploaded before search existed and
+    // ones whose summary exists but whose embedding is missing
+    List<Video> findTop3ByEmbeddedFalseAndSummaryAttemptsLessThan(int maxAttempts);
+
     Optional<Video> findByUserUsernameAndName(String email, String name);
 
 }

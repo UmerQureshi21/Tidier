@@ -2,6 +2,7 @@ export type VideoRequestDTO = {
   name: string;
   videoId: string;
   previewUrl: string;
+  searchable: boolean; // has a summary + embedding, so the search page can find it
 };
 
 export type MontageRequestDTO = {
@@ -18,6 +19,17 @@ export type MontageResponseDTO = {
   createdAt: Date;
   duration: number;
   videos: VideoRequestDTO[];
+  searchable: boolean;
+};
+
+export type SearchResultDTO = {
+  kind: "VIDEO" | "MONTAGE";
+  id: number;
+  name: string;
+  url: string;
+  summary: string;
+  prompt: string | null; // montages only
+  score: number;
 };
 
 export type UserRequestDTO = {

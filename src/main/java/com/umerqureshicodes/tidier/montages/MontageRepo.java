@@ -13,4 +13,7 @@ public interface MontageRepo extends JpaRepository<Montage, Long> {
 
     Optional<Montage> findByIdAndUserUsername(Long id, String username);
 
+    // Montages whose embedding failed at creation time
+    List<Montage> findTop3ByEmbeddedFalse();
+
 }

@@ -1,15 +1,18 @@
 import React from "react";
+import SearchableTag from "./SearchableTag";
 
 interface FileDetailsProps {
   name: string;
   size: number;
   type: string;
   videoSrc: string;
+  searchable?: boolean;
 }
 
 export default function FileDetails({
   name,
   videoSrc,
+  searchable,
 }: FileDetailsProps) {
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const [duration, setDuration] = React.useState(0);
@@ -53,10 +56,10 @@ export default function FileDetails({
         <h3 className="font-semibold text-base truncate text-gray-200 group-hover:text-white transition-colors">
           {name}
         </h3>
-        <div className="flex items-center gap-2 text-xs text-gray-400">
+        <div className="flex items-center justify-between gap-2 text-xs text-gray-400">
           <span>{formatTime(duration)}</span>
+          {searchable !== undefined && <SearchableTag searchable={searchable} />}
         </div>
-        <summary className="text-xs text-gray-500 line-clamp-2"></summary>
       </div>
     </div>
   );

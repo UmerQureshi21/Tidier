@@ -15,6 +15,7 @@ import LogInPage from "./pages/LogInPage";
 import VideoLibraryPage from "./pages/VideoLibraryPage";
 import DashBoardPage from "./pages/DashBoardPage";
 import CreateMontagePage from "./pages/CreateMontagePage";
+import SearchPage from "./pages/SearchPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import { restoreSession } from "./services/userService";
 import { tokenManager } from "./services/tokenManager";
@@ -50,6 +51,7 @@ function AppContent() {
         <Route path="dashboard" element={<DashBoardPage />} />
         <Route path="create" element={<CreateMontagePage />} />
         <Route path="montages" element={<MontagePage />} />
+        <Route path="search" element={<SearchPage />} />
         <Route path="videos" element={<VideoLibraryPage />} />
         {/* <Route path="account" element={<AccountPage />} /> */}
       </Route>

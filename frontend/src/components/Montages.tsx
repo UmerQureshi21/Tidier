@@ -33,6 +33,7 @@ export default function Montages() {
               duration={montage.duration}
               photos={montage.videos.map((video) => video.previewUrl)}
               videoSrc={montage.preSignedUrl}
+              searchable={montage.searchable}
             />
           ))}
         </div>

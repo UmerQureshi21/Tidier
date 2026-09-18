@@ -66,6 +66,10 @@ export default function PopUp() {
       page: "/create",
       text: "Create Montage",
     },
+    {
+      page: "/search",
+      text: "Search",
+    },
     // {
     //   page: "/acccount",
     //   text: "Account",

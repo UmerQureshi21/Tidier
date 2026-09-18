@@ -20,10 +20,19 @@ public class Video {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "vidSeqGen")
     @SequenceGenerator(name = "vidSeqGen", sequenceName = "vidSeq", allocationSize = 1)
     private Long id;
-    private String videoId;
+    private String videoId; // TwelveLabs id of the indexed video
+    private String assetId; // needed by the analyze endpoint, filled in once indexing finishes
     @ManyToMany(mappedBy = "videos")
     private List<Montage> montages = new ArrayList<>();
     private String name;
+    @Column(columnDefinition = "text")
+    private String summary; // TwelveLabs description of the video, this is what gets embedded
+    // Default keeps the column addable to a table that already has rows
+    @Column(columnDefinition = "integer default 0", nullable = false)
+    private int summaryAttempts; // stops a video that always fails from being retried forever
+    // The embedding, not the summary, is what the search page needs
+    @Column(columnDefinition = "boolean default false", nullable = false)
+    private boolean embedded;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private AppUser user;
@@ -74,6 +83,42 @@ public class Video {
 
     public String getName() {
         return name;
+    }
+
+    public String getAssetId() {
+        return assetId;
+    }
+
+    public void setAssetId(String assetId) {
+        this.assetId = assetId;
+    }
+
+    public String getSummary() {
+        return summary;
+    }
+
+    public void setSummary(String summary) {
+        this.summary = summary;
+    }
+
+    public boolean isEmbedded() {
+        return embedded;
+    }
+
+    public void setEmbedded(boolean embedded) {
+        this.embedded = embedded;
+    }
+
+    public int getSummaryAttempts() {
+        return summaryAttempts;
+    }
+
+    public void setSummaryAttempts(int summaryAttempts) {
+        this.summaryAttempts = summaryAttempts;
+    }
+
+    public AppUser getUser() {
+        return user;
     }
 
     public void setName(String name) {
