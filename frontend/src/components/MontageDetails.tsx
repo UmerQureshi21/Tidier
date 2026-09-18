@@ -1,4 +1,5 @@
 import { useState } from "react";
+import SearchableTag from "./SearchableTag";
 
 export default function MontageDetails({
   title,
@@ -7,6 +8,7 @@ export default function MontageDetails({
   duration,
   photos,
   videoSrc,
+  searchable,
 }: {
   title: string;
   topic: string;
@@ -14,6 +16,7 @@ export default function MontageDetails({
   duration: number;
   photos: string[];
   videoSrc: string;
+  searchable?: boolean;
 }) {
   const [isPhotosExpanded, setIsPhotosExpanded] = useState(false);
   const [isVideoHovering, setIsVideoHovering] = useState(false);
@@ -57,7 +60,10 @@ export default function MontageDetails({
                 className="w-full h-48 md:h-[400px] object-cover"
               />
             </div>
-            <div className=" text-white flex flex-col justify-between poppins-font">
+            <div className=" text-white flex flex-col justify-between poppins-font gap-[8px]">
+              {searchable !== undefined && (
+                <SearchableTag searchable={searchable} />
+              )}
               <h1>Time: {duration}</h1>
               <h1>
                 Created On:{" "}

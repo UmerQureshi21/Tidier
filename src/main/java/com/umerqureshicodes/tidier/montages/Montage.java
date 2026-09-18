@@ -33,6 +33,9 @@ public class Montage {
     private String prompt;
     private int duration;
     private String s3Key; // null for montages created before this was stored
+    // Default keeps the column addable to a table that already has rows
+    @Column(columnDefinition = "boolean default false", nullable = false)
+    private boolean embedded; // false when the search embedding still needs to be created
 
     @CreationTimestamp
     @Temporal(TemporalType.TIMESTAMP)
@@ -65,6 +68,22 @@ public class Montage {
 
     public void setS3Key(String s3Key) {
         this.s3Key = s3Key;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public boolean isEmbedded() {
+        return embedded;
+    }
+
+    public void setEmbedded(boolean embedded) {
+        this.embedded = embedded;
+    }
+
+    public AppUser getUser() {
+        return user;
     }
 
     public int getDuration() {

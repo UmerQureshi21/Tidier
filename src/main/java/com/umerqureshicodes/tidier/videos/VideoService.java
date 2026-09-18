@@ -4,6 +4,8 @@ package com.umerqureshicodes.tidier.videos;
 import com.umerqureshicodes.tidier.FFmpeg.FFmpegService;
 import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsService;
 import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsTaskResponse;
+import com.umerqureshicodes.tidier.embeddings.Embedding;
+import com.umerqureshicodes.tidier.embeddings.EmbeddingService;
 import com.umerqureshicodes.tidier.limits.LimitService;
 import com.umerqureshicodes.tidier.montages.Montage;
 import com.umerqureshicodes.tidier.s3.S3Service;
@@ -29,9 +31,11 @@ public class VideoService {
     private final FFmpegService ffmpegService;
     private final UserRepo userRepo;
     private final LimitService limitService;
+    private final EmbeddingService embeddingService;
     private final SimpMessagingTemplate messagingTemplate;
     @Autowired
-    public VideoService(VideoRepo videoRepo, S3Service s3Service, TwelveLabsService twelveLabsService, FFmpegService ffmpegService, UserRepo userRepo, LimitService limitService, SimpMessagingTemplate messagingTemplate) {
+    public VideoService(VideoRepo videoRepo, S3Service s3Service, TwelveLabsService twelveLabsService, FFmpegService ffmpegService, UserRepo userRepo, LimitService limitService, SimpMessagingTemplate messagingTemplate, EmbeddingService embeddingService) {
+        this.embeddingService = embeddingService;
         this.videoRepo = videoRepo;
         this.s3Service = s3Service;
         this.twelveLabsService = twelveLabsService;
@@ -140,7 +144,8 @@ public class VideoService {
                 responses.add(
                         new VideoResponseDTO(
                                 uploadedVid.getName(),
-                                uploadedVid.getVideoId()
+                                uploadedVid.getVideoId(),
+                                false // summarized by the background job, a minute or two later
                         )
                 );
 
@@ -184,7 +189,7 @@ public class VideoService {
         for (Video video : videoRepo.findAllByUserUsername(userEmail)) {
                 System.out.println(video.getName());
                 String preSignedUrl = s3Service.generatePresignedGetUrl("tidier", this.getS3Name(video)).toString();
-                videoResponseDTOList.add(new VideoResponseDTO(video.getName(),video.getVideoId(),preSignedUrl));
+                videoResponseDTOList.add(new VideoResponseDTO(video.getName(),video.getVideoId(),preSignedUrl,video.isEmbedded()));
         }
         return videoResponseDTOList;
     }
@@ -212,6 +217,7 @@ public class VideoService {
             montage.getVideos().remove(video);
         }
         videoRepo.delete(video);
+        embeddingService.deleteFor(Embedding.Kind.VIDEO, video.getId());
 
         // Best effort cleanup, a failure here shouldn't undo the db delete
         try {

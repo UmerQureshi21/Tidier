@@ -5,6 +5,8 @@ import com.umerqureshicodes.tidier.FFmpeg.FFmpegService;
 import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsService;
 import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsTimeStampResponse;
 import com.umerqureshicodes.tidier.WebSocket.WebSocketServiceMessage;
+import com.umerqureshicodes.tidier.embeddings.Embedding;
+import com.umerqureshicodes.tidier.embeddings.EmbeddingService;
 import com.umerqureshicodes.tidier.s3.S3Service;
 import com.umerqureshicodes.tidier.users.AppUser;
 import com.umerqureshicodes.tidier.users.UserRepo;
@@ -35,6 +37,7 @@ public class MontageService {
     private final S3Service s3Service;
     private final TwelveLabsService twelveLabsService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final EmbeddingService embeddingService;
     // Matches intervals like 00:04-00:08 in the TwelveLabs answer
     private static final Pattern INTERVAL_PATTERN = Pattern.compile("(\\d{1,2}):(\\d{2})\\s*-\\s*(\\d{1,2}):(\\d{2})");
 
@@ -45,7 +48,8 @@ public class MontageService {
         final List<Path> trimmedFiles = new ArrayList<>();
     }
 
-    public MontageService(MontageRepo montageRepo, VideoService videoService, S3Service s3Service, TwelveLabsService twelveLabsService, SimpMessagingTemplate messagingTemplate, FFmpegService fFmpegService, UserRepo userRepo, VideoRepo videoRepo) {
+    public MontageService(MontageRepo montageRepo, VideoService videoService, S3Service s3Service, TwelveLabsService twelveLabsService, SimpMessagingTemplate messagingTemplate, FFmpegService fFmpegService, UserRepo userRepo, VideoRepo videoRepo, EmbeddingService embeddingService) {
+        this.embeddingService = embeddingService;
         this.montageRepo = montageRepo;
         this.videoService = videoService;
         this.s3Service = s3Service;
@@ -64,9 +68,9 @@ public class MontageService {
     public MontageResponseDTO convertToDTO(Montage montage, String montageUrl) {
         List<VideoResponseDTO> videoResponseDTOs = new ArrayList<>();
         for (Video video: montage.getVideos()){
-            videoResponseDTOs.add(new VideoResponseDTO(video.getName(),video.getVideoId()));
+            videoResponseDTOs.add(new VideoResponseDTO(video.getName(),video.getVideoId(),video.isEmbedded()));
         }
-        return new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt(), montage.getCreatedAt(), montage.getDuration(),montageUrl);
+        return new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt(), montage.getCreatedAt(), montage.getDuration(),montageUrl, montage.isEmbedded());
     }
 
     public MontageResponseDTO createMontage(MontageRequestDTO montageRequestDTO, String email) {
@@ -87,6 +91,10 @@ public class MontageService {
             if (video.isEmpty()) {
                 System.out.println("Video " + v.getVideoId() + " not found for user");
                 throw new MontageCreationException("One of the selected videos could not be found.");
+            }
+            if (video.get().getAssetId() == null) {
+                throw new MontageCreationException("\"" + video.get().getName()
+                        + "\" is still being processed. Please try again in a minute.");
             }
             selectedVideos.add(video.get());
         }
@@ -120,6 +128,13 @@ public class MontageService {
         montage.setVideos(build.videosUsed);
         Montage savedMontage = montageRepo.save(montage);
 
+        // Make the montage searchable. If this fails the background job retries it
+        if (embeddingService.embedAndStore(Embedding.Kind.MONTAGE, savedMontage.getId(), user.get().getId(),
+                buildMontageText(savedMontage))) {
+            savedMontage.setEmbedded(true);
+            savedMontage = montageRepo.save(savedMontage);
+        }
+
         String preSignedUrl = s3Service.generatePresignedGetUrl("tidier", s3Key).toString();
         notify(email, montageRequestDTO.name() +" created!", preSignedUrl);
         System.out.println(montageRequestDTO.name() +" created!");
@@ -131,7 +146,7 @@ public class MontageService {
     public Map<Video, String> analyzeVideoWithPrompt(List<Video> videos, MontageRequestDTO montageRequestDTO, String email) {
         Map<Video, String> timestamps = new LinkedHashMap<>();
         for(Video video : videos) {
-            TwelveLabsTimeStampResponse response = twelveLabsService.getIntervalsOfTopic(video.getVideoId(), montageRequestDTO.sentence());
+            TwelveLabsTimeStampResponse response = twelveLabsService.getIntervalsOfTopic(video.getAssetId(), montageRequestDTO.sentence());
             if (response != null && response.data() != null) {
                 timestamps.put(video, response.data());
                 notify(email, "Successfully extracted " + montageRequestDTO.prompt() + " from " + video.getName(), null);
@@ -225,6 +240,17 @@ public class MontageService {
         return exitCode;
     }
 
+    // What gets embedded for a montage: the user's own words plus whatever the source videos show
+    public String buildMontageText(Montage montage) {
+        StringBuilder text = new StringBuilder(montage.getName() + ". " + montage.getPrompt() + ".");
+        for (Video video : montage.getVideos()) {
+            if (video.getSummary() != null) {
+                text.append(" ").append(video.getSummary());
+            }
+        }
+        return text.toString();
+    }
+
     private void deleteQuietly(Path path) {
         try {
             Files.deleteIfExists(path);
@@ -241,10 +267,10 @@ public class MontageService {
             List<Video> videos = montage.getVideos();
             for (Video video : videos) {
                 String videoPreviewUrl = videoService.getVideoUrl(videoService.getS3Name(video));
-                videoResponseDTOs.add(new VideoResponseDTO(video.getName(),video.getVideoId(),videoPreviewUrl));
+                videoResponseDTOs.add(new VideoResponseDTO(video.getName(),video.getVideoId(),videoPreviewUrl,video.isEmbedded()));
             }
             String preSignedUrl = s3Service.generatePresignedGetUrl("tidier",getS3Key(montage, userEmail)).toString();
-            montageResponseDTOs.add(new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt(),montage.getCreatedAt(),montage.getDuration(),preSignedUrl));
+            montageResponseDTOs.add(new MontageResponseDTO(montage.getName(),videoResponseDTOs,montage.getPrompt(),montage.getCreatedAt(),montage.getDuration(),preSignedUrl,montage.isEmbedded()));
         }
         return montageResponseDTOs;
     }
@@ -266,6 +292,7 @@ public class MontageService {
         }
         Montage montage = montageOptional.get();
         montageRepo.delete(montage);
+        embeddingService.deleteFor(Embedding.Kind.MONTAGE, montage.getId());
 
         // Best effort cleanup, a failure here shouldn't undo the db delete
         try {

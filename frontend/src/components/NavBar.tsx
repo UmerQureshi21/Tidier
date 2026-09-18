@@ -16,7 +16,7 @@ export default function Navbar() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const linkWidth = 14;
+  const linkWidth = 12;
   const linkFont = 12;
   const allignment = "center";
   const colour = "#925cfe";
@@ -36,6 +36,10 @@ export default function Navbar() {
     {
       page: "/montages",
       text: "Montage Library",
+    },
+    {
+      page: "/search",
+      text: "Search",
     },
     // {
     //   page: "/account",
@@ -69,7 +73,7 @@ export default function Navbar() {
         {clientWidth < 900 ? (
           <PopUp />
         ) : (
-          <div className="w-[60%]  relative right-[20px] flex items-center justify-between">
+          <div className="w-[68%]  relative right-[20px] flex items-center justify-between">
             {pages.map((page, index) => (
               <NavBarLink
                 key={`nav bar link ${index}`}

@@ -122,6 +122,7 @@ export default function Upload() {
                     size={0}
                     type={""}
                     videoSrc={file.previewUrl}
+                    searchable={file.searchable}
                   />
                 </div>
               ))}

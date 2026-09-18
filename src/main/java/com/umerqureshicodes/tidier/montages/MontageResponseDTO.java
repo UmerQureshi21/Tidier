@@ -11,6 +11,7 @@ public record MontageResponseDTO(
         String prompt,
         Date createdAt,
         int duration,
-        String preSignedUrl
+        String preSignedUrl,
+        boolean searchable // true once the montage has an embedding
 ) {
 }
