@@ -1,5 +1,7 @@
-package com.umerqureshicodes.tidier.embeddings;
+package com.umerqureshicodes.tidier.search;
 
+import com.umerqureshicodes.tidier.ai.AiClient;
+import com.umerqureshicodes.tidier.ai.AiSearchHit;
 import com.umerqureshicodes.tidier.montages.Montage;
 import com.umerqureshicodes.tidier.montages.MontageRepo;
 import com.umerqureshicodes.tidier.montages.MontageService;
@@ -18,16 +20,16 @@ public class SearchService {
 
     private static final int MAX_RESULTS = 10;
 
-    private final EmbeddingService embeddingService;
+    private final AiClient aiClient;
     private final VideoRepo videoRepo;
     private final MontageRepo montageRepo;
     private final VideoService videoService;
     private final MontageService montageService;
     private final S3Service s3Service;
 
-    public SearchService(EmbeddingService embeddingService, VideoRepo videoRepo, MontageRepo montageRepo,
+    public SearchService(AiClient aiClient, VideoRepo videoRepo, MontageRepo montageRepo,
                          VideoService videoService, MontageService montageService, S3Service s3Service) {
-        this.embeddingService = embeddingService;
+        this.aiClient = aiClient;
         this.videoRepo = videoRepo;
         this.montageRepo = montageRepo;
         this.videoService = videoService;
@@ -35,15 +37,15 @@ public class SearchService {
         this.s3Service = s3Service;
     }
 
-    public List<SearchResultDTO> search(String query, Embedding.Kind kind, Long userId, String userEmail) {
+    public List<SearchResultDTO> search(String query, String kind, Long userId, String userEmail) {
         if (query == null || query.isBlank()) {
             return List.of();
         }
 
         List<SearchResultDTO> results = new ArrayList<>();
-        for (SearchHit hit : embeddingService.search(userId, kind, query.trim(), MAX_RESULTS)) {
+        for (AiSearchHit hit : aiClient.search(userId, kind, query.trim(), MAX_RESULTS)) {
             // Looked up with the owner check, so a stale embedding can't expose someone else's video
-            if (hit.kind() == Embedding.Kind.VIDEO) {
+            if (AiClient.KIND_VIDEO.equals(kind)) {
                 Optional<Video> video = videoRepo.findByIdAndUserUsername(hit.refId(), userEmail);
                 video.ifPresent(v -> results.add(new SearchResultDTO(
                         "VIDEO", v.getId(), v.getName(),

@@ -22,6 +22,7 @@ public class Video {
     private Long id;
     private String videoId; // TwelveLabs id of the indexed video
     private String assetId; // needed by the analyze endpoint, filled in once indexing finishes
+    private String s3Key; // null for videos uploaded before this was stored
     @ManyToMany(mappedBy = "videos")
     private List<Montage> montages = new ArrayList<>();
     private String name;
@@ -83,6 +84,14 @@ public class Video {
 
     public String getName() {
         return name;
+    }
+
+    public String getS3Key() {
+        return s3Key;
+    }
+
+    public void setS3Key(String s3Key) {
+        this.s3Key = s3Key;
     }
 
     public String getAssetId() {

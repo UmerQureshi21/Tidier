@@ -1,0 +1,26 @@
+# Local run of both services. Postgres is expected on the host (port 5436).
+services:
+  ai-service:
+    build: ./ai-service
+    env_file: ./ai-service/.env
+    environment:
+      # Reach the host's Postgres from inside the container
+      DATABASE_URL: postgresql://umerqureshi@host.docker.internal:5436/postgres
+    ports:
+      - "8000:8000"
+
+  backend:
+    build:
+      context: .
+      dockerfile: DockerFile
+    depends_on:
+      - ai-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5436/postgres
+      SPRING_DATASOURCE_USERNAME: umerqureshi
+      AI_SERVICE_URL: http://ai-service:8000
+      AI_SERVICE_KEY: ${AI_SERVICE_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_HOST: http://localhost:5173
+    ports:
+      - "8080:8080"

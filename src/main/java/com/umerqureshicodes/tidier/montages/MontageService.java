@@ -2,11 +2,8 @@ package com.umerqureshicodes.tidier.montages;
 
 
 import com.umerqureshicodes.tidier.FFmpeg.FFmpegService;
-import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsService;
-import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsTimeStampResponse;
+import com.umerqureshicodes.tidier.ai.AiClient;
 import com.umerqureshicodes.tidier.WebSocket.WebSocketServiceMessage;
-import com.umerqureshicodes.tidier.embeddings.Embedding;
-import com.umerqureshicodes.tidier.embeddings.EmbeddingService;
 import com.umerqureshicodes.tidier.s3.S3Service;
 import com.umerqureshicodes.tidier.users.AppUser;
 import com.umerqureshicodes.tidier.users.UserRepo;
@@ -35,9 +32,8 @@ public class MontageService {
     private final VideoService videoService;
     private final VideoRepo videoRepo;
     private final S3Service s3Service;
-    private final TwelveLabsService twelveLabsService;
+    private final AiClient aiClient;
     private final SimpMessagingTemplate messagingTemplate;
-    private final EmbeddingService embeddingService;
     // Matches intervals like 00:04-00:08 in the TwelveLabs answer
     private static final Pattern INTERVAL_PATTERN = Pattern.compile("(\\d{1,2}):(\\d{2})\\s*-\\s*(\\d{1,2}):(\\d{2})");
 
@@ -48,12 +44,11 @@ public class MontageService {
         final List<Path> trimmedFiles = new ArrayList<>();
     }
 
-    public MontageService(MontageRepo montageRepo, VideoService videoService, S3Service s3Service, TwelveLabsService twelveLabsService, SimpMessagingTemplate messagingTemplate, FFmpegService fFmpegService, UserRepo userRepo, VideoRepo videoRepo, EmbeddingService embeddingService) {
-        this.embeddingService = embeddingService;
+    public MontageService(MontageRepo montageRepo, VideoService videoService, S3Service s3Service, AiClient aiClient, SimpMessagingTemplate messagingTemplate, FFmpegService fFmpegService, UserRepo userRepo, VideoRepo videoRepo) {
         this.montageRepo = montageRepo;
         this.videoService = videoService;
         this.s3Service = s3Service;
-        this.twelveLabsService = twelveLabsService;
+        this.aiClient = aiClient;
         this.messagingTemplate = messagingTemplate;
         this.fFmpegService = fFmpegService;
         this.userRepo = userRepo;
@@ -129,7 +124,7 @@ public class MontageService {
         Montage savedMontage = montageRepo.save(montage);
 
         // Make the montage searchable. If this fails the background job retries it
-        if (embeddingService.embedAndStore(Embedding.Kind.MONTAGE, savedMontage.getId(), user.get().getId(),
+        if (aiClient.indexDocument(user.get().getId(), AiClient.KIND_MONTAGE, savedMontage.getId(),
                 buildMontageText(savedMontage))) {
             savedMontage.setEmbedded(true);
             savedMontage = montageRepo.save(savedMontage);
@@ -146,9 +141,10 @@ public class MontageService {
     public Map<Video, String> analyzeVideoWithPrompt(List<Video> videos, MontageRequestDTO montageRequestDTO, String email) {
         Map<Video, String> timestamps = new LinkedHashMap<>();
         for(Video video : videos) {
-            TwelveLabsTimeStampResponse response = twelveLabsService.getIntervalsOfTopic(video.getAssetId(), montageRequestDTO.sentence());
-            if (response != null && response.data() != null) {
-                timestamps.put(video, response.data());
+            // The AI service owns the prompt, this passes the topic the user typed
+            String intervals = aiClient.findIntervals(video.getAssetId(), montageRequestDTO.prompt());
+            if (intervals != null) {
+                timestamps.put(video, intervals);
                 notify(email, "Successfully extracted " + montageRequestDTO.prompt() + " from " + video.getName(), null);
             }
         }
@@ -292,7 +288,7 @@ public class MontageService {
         }
         Montage montage = montageOptional.get();
         montageRepo.delete(montage);
-        embeddingService.deleteFor(Embedding.Kind.MONTAGE, montage.getId());
+        aiClient.deleteDocument(AiClient.KIND_MONTAGE, montage.getId());
 
         // Best effort cleanup, a failure here shouldn't undo the db delete
         try {

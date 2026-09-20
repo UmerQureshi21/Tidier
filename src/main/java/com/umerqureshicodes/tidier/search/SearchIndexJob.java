@@ -1,6 +1,6 @@
-package com.umerqureshicodes.tidier.embeddings;
+package com.umerqureshicodes.tidier.search;
 
-import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsService;
+import com.umerqureshicodes.tidier.ai.AiClient;
 import com.umerqureshicodes.tidier.montages.Montage;
 import com.umerqureshicodes.tidier.montages.MontageRepo;
 import com.umerqureshicodes.tidier.montages.MontageService;
@@ -15,23 +15,21 @@ import java.util.List;
 // Summaries can't be made at upload time because TwelveLabs is still indexing the video, and the call
 // would fail. This job keeps trying in the background, which also covers videos uploaded before search existed.
 @Component
-public class SummaryEmbeddingJob {
+public class SearchIndexJob {
 
     private static final int MAX_ATTEMPTS = 5;
 
     private final VideoRepo videoRepo;
     private final MontageRepo montageRepo;
     private final MontageService montageService;
-    private final TwelveLabsService twelveLabsService;
-    private final EmbeddingService embeddingService;
+    private final AiClient aiClient;
 
-    public SummaryEmbeddingJob(VideoRepo videoRepo, MontageRepo montageRepo, MontageService montageService,
-                              TwelveLabsService twelveLabsService, EmbeddingService embeddingService) {
+    public SearchIndexJob(VideoRepo videoRepo, MontageRepo montageRepo, MontageService montageService,
+                          AiClient aiClient) {
         this.videoRepo = videoRepo;
         this.montageRepo = montageRepo;
         this.montageService = montageService;
-        this.twelveLabsService = twelveLabsService;
-        this.embeddingService = embeddingService;
+        this.aiClient = aiClient;
     }
 
     // A few at a time so a backlog doesn't turn into a burst of API calls
@@ -55,14 +53,14 @@ public class SummaryEmbeddingJob {
 
                 // Still indexing, or no longer in the index at all
                 if (video.getAssetId() == null) {
-                    video.setAssetId(twelveLabsService.getAssetId(video.getVideoId()));
+                    video.setAssetId(aiClient.getAssetId(video.getVideoId()));
                     if (video.getAssetId() == null) {
                         System.out.println("No asset id yet for " + video.getName() + ", attempt " + video.getSummaryAttempts());
                         continue;
                     }
                 }
 
-                summary = twelveLabsService.summarizeVideo(video.getAssetId());
+                summary = aiClient.summarize(video.getAssetId());
                 if (summary == null) {
                     System.out.println("No summary yet for " + video.getName() + ", attempt " + video.getSummaryAttempts());
                     continue;
@@ -70,7 +68,7 @@ public class SummaryEmbeddingJob {
                 video.setSummary(summary);
             }
 
-            if (embeddingService.embedAndStore(Embedding.Kind.VIDEO, video.getId(), video.getUser().getId(), summary)) {
+            if (aiClient.indexDocument(video.getUser().getId(), AiClient.KIND_VIDEO, video.getId(), summary)) {
                 video.setEmbedded(true);
                 System.out.println(video.getName() + " is now searchable");
             }
@@ -79,8 +77,8 @@ public class SummaryEmbeddingJob {
 
     private void embedMontages() {
         for (Montage montage : montageRepo.findTop3ByEmbeddedFalse()) {
-            if (embeddingService.embedAndStore(Embedding.Kind.MONTAGE, montage.getId(),
-                    montage.getUser().getId(), montageService.buildMontageText(montage))) {
+            if (aiClient.indexDocument(montage.getUser().getId(), AiClient.KIND_MONTAGE, montage.getId(),
+                    montageService.buildMontageText(montage))) {
                 montage.setEmbedded(true);
                 System.out.println("Embedded montage " + montage.getName());
             }

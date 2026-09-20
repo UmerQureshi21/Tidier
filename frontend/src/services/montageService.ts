@@ -27,10 +27,7 @@ export async function createMontage(
     name: title,
     videoRequestDTOs: videosInMontage,
     prompt: sentence,
-    sentence: `Give all time intervals of ${sentence}, only tell me the intervals, nothing else, and in this format: 00:00-00:06, 01:02-01:09, ... If there are no such time intervals, only return 00:00-00:00`,
   };
-
-  // Find timestamps containing FOOD-related visuals in a STREET environment at NIGHT.
 
   const res = await axiosInstance.post(`/montages`, request);
   clearMontageCache();
