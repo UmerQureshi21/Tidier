@@ -1,4 +1,4 @@
-package com.umerqureshicodes.tidier.embeddings;
+package com.umerqureshicodes.tidier.search;
 
 // One search result, shaped for the search page
 public record SearchResultDTO(

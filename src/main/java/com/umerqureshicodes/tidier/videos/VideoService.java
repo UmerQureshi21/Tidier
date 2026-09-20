@@ -2,10 +2,7 @@ package com.umerqureshicodes.tidier.videos;
 
 
 import com.umerqureshicodes.tidier.FFmpeg.FFmpegService;
-import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsService;
-import com.umerqureshicodes.tidier.TwelveLabs.TwelveLabsTaskResponse;
-import com.umerqureshicodes.tidier.embeddings.Embedding;
-import com.umerqureshicodes.tidier.embeddings.EmbeddingService;
+import com.umerqureshicodes.tidier.ai.AiClient;
 import com.umerqureshicodes.tidier.limits.LimitService;
 import com.umerqureshicodes.tidier.montages.Montage;
 import com.umerqureshicodes.tidier.s3.S3Service;
@@ -27,18 +24,16 @@ public class VideoService {
 
     private final VideoRepo videoRepo;
     private final S3Service s3Service;
-    private final TwelveLabsService twelveLabsService;
+    private final AiClient aiClient;
     private final FFmpegService ffmpegService;
     private final UserRepo userRepo;
     private final LimitService limitService;
-    private final EmbeddingService embeddingService;
     private final SimpMessagingTemplate messagingTemplate;
     @Autowired
-    public VideoService(VideoRepo videoRepo, S3Service s3Service, TwelveLabsService twelveLabsService, FFmpegService ffmpegService, UserRepo userRepo, LimitService limitService, SimpMessagingTemplate messagingTemplate, EmbeddingService embeddingService) {
-        this.embeddingService = embeddingService;
+    public VideoService(VideoRepo videoRepo, S3Service s3Service, AiClient aiClient, FFmpegService ffmpegService, UserRepo userRepo, LimitService limitService, SimpMessagingTemplate messagingTemplate) {
         this.videoRepo = videoRepo;
         this.s3Service = s3Service;
-        this.twelveLabsService = twelveLabsService;
+        this.aiClient = aiClient;
         this.ffmpegService = ffmpegService;
         this.userRepo = userRepo;
         this.limitService = limitService;
@@ -124,28 +119,22 @@ public class VideoService {
         for (Map.Entry<String, File> entry : videos.entrySet()) {
 
             try {
-                // Upload to TwelveLabs
+                // S3 first, the AI service indexes the video from a presigned url instead of
+                // the file being uploaded twice
                 notify(userEmail, entry.getKey(), "uploading");
-                Video uploadedVid = uploadToTwelveLabsAndSave(
-                        entry.getValue(),
-                        entry.getKey(),
-                        userEmail
-                );
+                Video savedVideo = uploadAndIndex(entry.getValue(), entry.getKey(), userEmail);
+                if (savedVideo == null) {
+                    System.out.println("Could not save " + entry.getKey());
+                    continue;
+                }
 
-                // Upload to S3 USING FILE
                 notify(userEmail, entry.getKey(), "indexing");
-                s3Service.putObject(
-                        "tidier",
-                        this.getS3Name(uploadedVid),
-                        entry.getValue()
-                );
-
                 notify(userEmail, entry.getKey(), "saved");
                 responses.add(
                         new VideoResponseDTO(
-                                uploadedVid.getName(),
-                                uploadedVid.getVideoId(),
-                                false // summarized by the background job, a minute or two later
+                                savedVideo.getName(),
+                                savedVideo.getVideoId(),
+                                false // described and embedded by the background job, a minute or two later
                         )
                 );
 
@@ -162,26 +151,28 @@ public class VideoService {
         return responses;
     }
 
-    public Video uploadToTwelveLabsAndSave(File file,String filename, String userEmail) {
-        try {
-            TwelveLabsTaskResponse videoData = twelveLabsService.indexVideo(file);
-            if (videoData == null) {
-                System.out.println("Video data is null");
-                return null;
-            }
-            Optional<AppUser> user = userRepo.findByUsername(userEmail) ;
-            if (!user.isPresent()) {
-                System.out.println("User not found");
-                return null;
-            }
-            Video video = new Video(videoData.id() ,filename, user.get());
-            videoRepo.save(video);
-            return video;
+    public Video uploadAndIndex(File file, String filename, String userEmail) {
+        Optional<AppUser> user = userRepo.findByUsername(userEmail);
+        if (user.isEmpty()) {
+            System.out.println("User not found");
+            return null;
         }
-        catch (Exception e) {
-           e.printStackTrace();
-           return null;
+
+        // Unique key, so two videos with the same name can't overwrite each other
+        String s3Key = "videos/" + user.get().getId() + "/" + UUID.randomUUID() + ".mp4";
+        s3Service.putObject("tidier", s3Key, file);
+
+        String videoUrl = s3Service.generatePresignedGetUrl("tidier", s3Key).toString();
+        String videoId = aiClient.indexVideo(videoUrl);
+        if (videoId == null) {
+            System.out.println("Could not index " + filename);
+            s3Service.deleteObject("tidier", s3Key); // nothing references it
+            return null;
         }
+
+        Video video = new Video(videoId, filename, user.get());
+        video.setS3Key(s3Key);
+        return videoRepo.save(video);
     }
 
     public List<VideoResponseDTO> getVideos(String userEmail) {
@@ -217,7 +208,7 @@ public class VideoService {
             montage.getVideos().remove(video);
         }
         videoRepo.delete(video);
-        embeddingService.deleteFor(Embedding.Kind.VIDEO, video.getId());
+        aiClient.deleteDocument(AiClient.KIND_VIDEO, video.getId());
 
         // Best effort cleanup, a failure here shouldn't undo the db delete
         try {
@@ -225,7 +216,7 @@ public class VideoService {
         } catch (Exception e) {
             System.out.println("Failed to delete video from S3: " + e.getMessage());
         }
-        twelveLabsService.deleteVideo(video.getVideoId());
+        aiClient.deleteVideo(video.getVideoId());
         return "Video deleted";
     }
 
@@ -234,6 +225,10 @@ public class VideoService {
     }
 
     public String getS3Name(Video video) {
+        if (video.getS3Key() != null) {
+            return video.getS3Key();
+        }
+        // Videos uploaded before s3Key was stored used this path
         return "test/"+video.getName() + "-" + video.getVideoId();
     }
 }
